@@ -150,8 +150,8 @@ of: a numeric id, a keyword id, and a length in bytes.")
     (265 :cell-length)
 
     (266 :fill-order 
-     ((1 :msb2lsb)   ;; most significant -> least 
-      (2 :lsb2msb))) ;; least significant -> most 
+     ((1 :msb2lsb)   ;; most significant -> least -- exiftool calls this normal
+      (2 :lsb2msb))) ;; least significant -> most -- exiftool calls this reversed
 
     (269 :document-name)
     (270 :image-description)
@@ -160,14 +160,14 @@ of: a numeric id, a keyword id, and a length in bytes.")
     (273 :strip-offsets)
 
     (274 :orientation
-     ((1 :top-left)      ;; row 0 top, col 0 lhs 
-      (2 :top-right)     ;; row 0 top, col 0 rhs 
-      (3 :bottom-right)  ;; row 0 bottom, col 0 rhs 
-      (4 :bottom-left)   ;; row 0 bottom, col 0 lhs 
-      (5 :left-top)      ;; row 0 lhs, col 0 top 
-      (6 :right-top)     ;; row 0 rhs, col 0 top 
-      (7 :right-bottom)  ;; row 0 rhs, col 0 bottom 
-      (8 :left-bottom))) ;; row 0 lhs, col 0 bottom 
+     ((1 :top-left)      ;; row 0 top, col 0 lhs    -- 1 Horizontal (normal)
+      (2 :top-right)     ;; row 0 top, col 0 rhs    -- 2 Mirror horizontal
+      (3 :bottom-right)  ;; row 0 bottom, col 0 rhs -- 3 Rotate 180
+      (4 :bottom-left)   ;; row 0 bottom, col 0 lhs -- 4 Mirror vertical
+      (5 :left-top)      ;; row 0 lhs, col 0 top    -- 5 Mirror horizontal and rotate 270 CW 
+      (6 :right-top)     ;; row 0 rhs, col 0 top    -- 6 Rotate-90-CW
+      (7 :right-bottom)  ;; row 0 rhs, col 0 bottom -- 7 Mirror horizontal and rotate 90 CW
+      (8 :left-bottom))) ;; row 0 lhs, col 0 bottom -- 8 Rotate 270 CW
 
     (277 :samples-per-pixel)
     (278 :rows-per-strip)
@@ -293,10 +293,11 @@ of: a numeric id, a keyword id, and a length in bytes.")
     (519 :jpeg-q-tables)
     (520 :jpeg-dc-tables)
     (521 :jpeg-ac-tables)
-    (529 :ycbcr-coefficients)
-    (530 :ycbcr-sub-sampling)
 
-    (531 :ycbcr-positioning ;short
+    ;; 4.5.3 Basic Structure of YCbCr Uncompressed Data
+    (529 :ycbcr-coefficients) ;; RGB-YCbCr color transformation matrix coefficients
+    (530 :ycbcr-sub-sampling) ;; Chrominance subsampling information
+    (531 :ycbcr-positioning   ;; short -- Information on matching/nonmatching of chrominance and luminance samples
      ((1 :centered)
       (2 :co-sited)))
 
@@ -429,7 +430,8 @@ of: a numeric id, a keyword id, and a length in bytes.")
 
     ;; Exif extensions
     ;; tags 34665, 34853 and 40965 are documented in EXIF specification 
-    (34665 :exif-ifd)			;; `interpret-tag-value' Exif extension
+    ;; 4.6.3 Exif-specific IFD
+    (34665 :exif-ifd) ;; `interpret-tag-value' Exif extension
     (33434 :exposure-time) ;; floatable-rational
     (33437 :f-number)      ;; floatable-rational
     (34850 :exposure-program 
@@ -509,7 +511,7 @@ of: a numeric id, a keyword id, and a length in bytes.")
     (40963 :pixel-y-dimension) ;; valid image height
     (40964 :related-sound-file)
 
-    (40965 :interoperability-IFD) ;; `interpret-tag-value' Exif extension
+    (40965 :interoperability-IFD) ;; `interpret-tag-value' -- 4.6.3 Exif-specific IFD
 
     (41483 :flash-energy)
     (41484 :spatial-frequency-response)
