@@ -2,29 +2,6 @@
 ;;; :FILE tiff4cl-FORK/tiff4cl-specials.lisp
 ;;; ==============================
 
-;;; ==============================
-;;; Copyright (C) 2009 by Walter C. Pelissero
-
-;;; Author: Walter C. Pelissero <walter@pelissero.de>
-;;; Project: tiff4cl
-
-#+cmu (ext:file-comment "$Module: tiff.lisp $")
-
-;;; This library is free software; you can redistribute it and/or
-;;; modify it under the terms of the GNU Lesser General Public License
-;;; as published by the Free Software Foundation; either version 2.1
-;;; of the License, or (at your option) any later version.
-;;; This library is distributed in the hope that it will be useful,
-;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;;; Lesser General Public License for more details.
-;;; You should have received a copy of the GNU Lesser General Public
-;;; License along with this library; if not, write to the Free
-;;; Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-;;; 02111-1307 USA
-
-;;; ==============================
-
 (in-package #:tiff4cl)
 
 ;; (defconstant +little-endian-signature+
@@ -552,34 +529,6 @@ of: a numeric id, a keyword id, and a length in bytes.")
     (41995 :device-setting-description)
     (41996 :subject-distance-range)
     (42016 :image-unique-id)))
-
-;;; ==============================
-;; portions of *tag-ids* taken from libtiff/tiff.h
-;;; ==============================
-;; 
-;; Copyright (c) 1988-1997 Sam Leffler
-;; Copyright (c) 1991-1997 Silicon Graphics, Inc.
-;; 
-;; Permission to use, copy, modify, distribute, and sell this software and 
-;; its documentation for any purpose is hereby granted without fee, provided
-;; that (i) the above copyright notices and this permission notice appear in
-;; all copies of the software and related documentation, and (ii) the names of
-;; Sam Leffler and Silicon Graphics may not be used in any advertising or
-;; publicity relating to the software without the specific, prior written
-;; permission of Sam Leffler and Silicon Graphics.
-;; 
-;; THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND, 
-;; EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY 
-;; WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  
-;; 
-;; IN NO EVENT SHALL SAM LEFFLER OR SILICON GRAPHICS BE LIABLE FOR
-;; ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
-;; OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
-;; WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF 
-;; LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
-;; OF THIS SOFTWARE.
-;;
-;;; ==============================
 
 ;;; ==============================
 ;;; EOF
