@@ -37,7 +37,44 @@
 Every type is a triplet consisting
 of: a numeric id, a keyword id, and a length in bytes.")
 
-
+;;; ==============================
+;;
+;; Basic structure of uncompressed data files
+;;
+;;     ,-<[          <TIFF-HEADER>                  ]
+;;     `->[ 0th IFD for primary image data ]
+;;         | <Image-Width> 
+;;         |     ...
+;;         | <STRIP-OFFSETS>-------------------------,
+;;         |     ...                                 .
+;;     ,--<| <EXIF-IFD-POINTER>                      .
+;;     .   | <GPS-IFD-POINTER>-----------------,     .
+;;   ,-+--<| <NEXT-IFD-POINTER>                .     .
+;;   . .   [ ... Value of 0th IFD ... ]        .     .
+;;   . `->[ <EXIF-IFD> (EXIF Private Tag) ]    .     .
+;;   .      | <EXIF-VERSION>                   .     .
+;;   .      | <DATE-TIME-DIGITIZED>            .     .
+;;   .      |     ...                          .     .
+;;   .     [ ... Value of EXIF IFD ... ]       .     .
+;;   .    [ <GPS-IFD> (GPS Info Tag) ]<--------'     .
+;;   .      | <GPS-VERSION>                          .
+;;   .      |     ...                                .
+;;   .     [ ... Value of GPS IFD ... ]              .
+;;   `--->[ 1st IFD for thumbnail data ]             .
+;;         | <IMAGE-WIDTH>                           .
+;;         |   ...                                   .
+;;         | <STRIP-OFFSETS>------------------,      .
+;;         |   ...                            .      .
+;;         [ ... Value of 1st IFD ... ]       .      .
+;;        [ ... Thumbnail Data ...   ]<-------'      .
+;;        [ Primary Image Data ]<--------------------'
+;;         | { Strip1    
+;;         |   Strip2
+;;         |    ...
+;;         |   StripN }
+;;
+;;; ==============================
+;;
 ;; for use with tiff.h 
 ;; (save-excursion 
 ;;    (save-restriction 
@@ -245,8 +282,8 @@ of: a numeric id, a keyword id, and a length in bytes.")
     (351 :opi-proxy)			; PageMaker extension
     
     (512 :JPEG-proc
-     ((1 :baseline)    ;; !baseline sequential 
-      (14 :lossless))) ;; !Huffman coded lossless 
+     ((1 :baseline)    ;; baseline sequential 
+      (14 :lossless))) ;; Huffman coded lossless 
 
     (513 :jpeg-interchange-format)
     (514 :jpeg-interchange-format-length)
@@ -256,11 +293,13 @@ of: a numeric id, a keyword id, and a length in bytes.")
     (519 :jpeg-q-tables)
     (520 :jpeg-dc-tables)
     (521 :jpeg-ac-tables)
-    (529 :y-cb-cr-coefficients)
-    (530 :y-cb-cr-sub-sampling)
-    (531 :y-cb-cr-positioning 
+    (529 :ycbcr-coefficients)
+    (530 :ycbcr-sub-sampling)
+
+    (531 :ycbcr-positioning ;short
      ((1 :centered)
-      (2 :cosited)))
+      (2 :co-sited)))
+
     (532 :reference-black-white)
     (32781 :image-id)            ;; PageMaker extension
     (32954 :region-tack-point)	 ;; region-xform tack point 
@@ -391,35 +430,35 @@ of: a numeric id, a keyword id, and a length in bytes.")
     ;; Exif extensions
     ;; tags 34665, 34853 and 40965 are documented in EXIF specification 
     (34665 :exif-ifd)			;; `interpret-tag-value' Exif extension
-    (33434 :exposure-time)
-    (33437 :f-number)
+    (33434 :exposure-time) ;; floatable-rational
+    (33437 :f-number)      ;; floatable-rational
     (34850 :exposure-program 
-     ((0 nil)
+     ((0 :not-defined)
       (1 :manual)
       (2 :normal)
       (3 :aperture-priority)
       (4 :shutter-priority)
-      (5 :creative)
-      (6 :action)
-      (7 :portrait)
-      (8 :landscape)))
-    (34852 :spectral-sensitivity)
+      (5 :creative-program)
+      (6 :action-program)
+      (7 :portrait-mode)
+      (8 :landscape-mode)))
+    (34852 :spectral-sensitivity) ;; ascii
 
     (34853 :gps-ifd) ;; `interpret-tag-value' Exif extension
 
-    (34855 :iso-speed-ratings)
+    (34855 :iso-speed-ratings) ;; short
     (34856 :oecf) ;;  Optoelectric conversion factor
     (36864 :exif-version)
     (36867 :date-time-original)  ;; Date and time of original data generation
     (36868 :date-time-digitized) ;; Date and time of digital data generation
     (37121 :components-configuration)  ;; Meaning of each component
     (37122 :compressed-bits-per-pixel) ;; Image compression mode
-    (37377 :shutter-speed-value)       ;; Shutter speed
-    (37378 :aperture-value)            ;; Aperture                
-    (37379 :brightness-value)          ;; Brightness             
-    (37380 :exposure-bias-value)       ;; Exposure bias     
-    (37381 :max-aperture-value)        ;; Maximum lens aperture
-    (37382 :subject-distance)          ;; Subject distance
+    (37377 :shutter-speed-value)       ;; floatable-rational
+    (37378 :aperture-value)            ;; floatable-rational
+    (37379 :brightness-value)          ;; signed-rational
+    (37380 :exposure-bias-value)       ;; signed-rational
+    (37381 :max-aperture-value)        ;; floatable-rational -- Maximum lens aperture
+    (37382 :subject-distance)          ;; floatable-rational -- Subject distance
     (37383 :metering-mode 
      ((0 nil)
       (1 :average)
@@ -456,13 +495,16 @@ of: a numeric id, a keyword id, and a length in bytes.")
     (37396 :subject-area)
     (37500 :maker-note) ;; Manufacturer notes  :NOTE Nikon Nefs use this to hold proprietary raw data
     (37510 :user-comment)
-    (37520 :subsec-time)
-    (37521 :subsec-time-original)
-    (37522 :subsec-time-digitized)
+    (37520 :sub-sec-time) ;; ascii
+    (37521 :sub-sec-time-original) ;; ascii
+    (37522 :sub-sec-time-digitized) ;; ascii
     
     (40960 :flashpix-version) ;; `interpret-tag-value' 
     
-    (40961 :color-space)       ;; Color space information
+    (40961 :color-space ;; Color space information
+     ((1 :srgb)
+      (#xFFFF :uncalibrated)))
+
     (40962 :pixel-x-dimension) ;; Valid image width
     (40963 :pixel-y-dimension) ;; valid image height
     (40964 :related-sound-file)
@@ -471,11 +513,11 @@ of: a numeric id, a keyword id, and a length in bytes.")
 
     (41483 :flash-energy)
     (41484 :spatial-frequency-response)
-    (41486 :focal-plane-x-resolution)
-    (41487 :focal-plane-y-resolution)
-    (41488 :focal-plane-resolution-unit)
-    (41492 :subject-location)
-    (41493 :exposure-index)
+    (41486 :focal-plane-x-resolution) ;; floatable-rational
+    (41487 :focal-plane-y-resolution) ;; floatable-rational
+    (41488 :focal-plane-resolution-unit) ;; short
+    (41492 :subject-location)            ;; short
+    (41493 :exposure-index)              ;; rational
     (41495 :sensing-method 
      ((1 :undefined)
       (2 :one-chip-color-area)
@@ -493,8 +535,8 @@ of: a numeric id, a keyword id, and a length in bytes.")
      ((0 nil)
       (1 t)))
     (41986 :exposure-mode 
-     ((0 :auto)
-      (1 :manual)
+     ((0 :auto-exposure)
+      (1 :manual-exposure)
       (2 :auto-bracket)))
     (41987 :white-balance 
      ((0 :auto)
@@ -507,9 +549,9 @@ of: a numeric id, a keyword id, and a length in bytes.")
      ((0 :standard)
       (1 :landscape)
       (2 :portrait)
-      (3 :night)))
+      (3 :night-scene)))
     (41991 :gain-control 
-     ((0 nil)
+     ((0 :none)
       (1 :low-gain-up)
       (2 :high-gain-up)
       (3 :low-gain-down)
@@ -520,14 +562,18 @@ of: a numeric id, a keyword id, and a length in bytes.")
       (2 :hard)))
     (41993 :saturation 
      ((0 :normal)
-      (1 :low)
-      (2 :high)))
+      (1 :low-saturation)
+      (2 :high-saturation)))
     (41994 :sharpness
      ((0 :normal)
       (1 :soft)
       (2 :hard)))
     (41995 :device-setting-description)
-    (41996 :subject-distance-range)
+    (41996 :subject-distance-range
+     ((0 :unknown)
+      (1 :macro)
+      (2 :close-view)
+      (3 :distant-view)))
     (42016 :image-unique-id)))
 
 ;;; ==============================
