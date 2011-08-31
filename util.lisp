@@ -35,6 +35,11 @@
 (make-read-sequence read-bytes (make-sequence '(vector (unsigned-byte 8)) length))
 ;; (make-read-sequence read-string (make-string length))
 
+;; :SEE info node (info "(sbcl)Defining Constants")
+(defmacro define-constant (name value &optional doc)
+  `(defconstant ,name (if (boundp ',name) (symbol-value ',name) ,value)
+     ,@(when doc (list doc))))
+
 (defun decode-integer-BE (sequence &key (start 0) end)
   "Decode a big-endian sequence of bytes as an integer and return it."
   (loop

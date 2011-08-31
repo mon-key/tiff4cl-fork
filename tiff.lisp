@@ -1,4 +1,4 @@
-;;; tiff.lisp --- TIFF parsing
+;;; tiff4cl.lisp --- TIFF parsing
 
 ;;; Copyright (C) 2009 by Walter C. Pelissero
 
@@ -20,73 +20,54 @@
 ;;; Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 ;;; 02111-1307 USA
 
-(in-package :tiff4cl)
+(in-package #:tiff4cl)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-condition TIFF-error (error) ())
-
-(define-condition not-a-TIFF (TIFF-error) ())
-
-(define-condition wrong-version (TIFF-error)
-  ((version :initarg :version
-	    :reader TIFF-error-version)))
-
-(define-condition invalid-pointer (TIFF-error)
-  ((pointer :initarg :pointer
-	    :reader TIFF-error-pointer)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defclass TIFF-stream ()
+(defclass tiff-stream ()
   ((stream :initarg :stream
-	   :reader TIFF-stream)
+	   :reader tiff-stream)
    (start :initarg :start
 	  :initform 0
 	  :type integer
-	  :reader TIFF-start)
+	  :reader tiff-start)
    (end :initarg :end
 	:initform nil
 	:type (or integer null)
-	:reader TIFF-end)))
+	:reader tiff-end)))
 
-(defclass TIFF-little-endian-stream (TIFF-stream) ())
-(defclass TIFF-big-endian-stream (TIFF-stream) ())
+(defclass tiff-little-endian-stream (tiff-stream) ())
+
+(defclass tiff-big-endian-stream (tiff-stream) ())
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defgeneric decode-integer (tiff buffer &key start end))
+
 (defmethod decode-integer ((tiff TIFF-little-endian-stream) buffer &key (start 0) end)
-  (decode-integer-LE buffer
+  (decode-integer-le buffer
 		     :start start
 		     :end end))
 (defmethod decode-integer ((tiff TIFF-big-endian-stream) buffer &key (start 0) end)
-  (decode-integer-BE buffer
+  (decode-integer-be buffer
 		     :start start
 		     :end end))
 
 (defgeneric read-16bit (tiff))
-(defmethod read-16bit ((tiff TIFF-little-endian-stream))
-  (read-16bit-le (TIFF-stream tiff)))
-(defmethod read-16bit ((tiff TIFF-big-endian-stream))
-  (read-16bit-be (TIFF-stream tiff)))
+
+(defmethod read-16bit ((tiff tiff-little-endian-stream))
+  (read-16bit-le (tiff-stream tiff)))
+
+(defmethod read-16bit ((tiff tiff-big-endian-stream))
+  (read-16bit-be (tiff-stream tiff)))
 
 (defgeneric read-32bit (tiff))
-(defmethod read-32bit ((tiff TIFF-little-endian-stream))
-  (read-32bit-le (TIFF-stream tiff)))
-(defmethod read-32bit ((tiff TIFF-big-endian-stream))
-  (read-32bit-be (TIFF-stream tiff)))
+
+(defmethod read-32bit ((tiff tiff-little-endian-stream))
+  (read-32bit-le (tiff-stream tiff)))
+
+(defmethod read-32bit ((tiff tiff-big-endian-stream))
+  (read-32bit-be (tiff-stream tiff)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defconstant +little-endian-signature+
-  (map 'vector #'char-code "II"))
-
-(defconstant +big-endian-signature+
-  (map 'vector #'char-code "MM"))
-
-(defconstant +TIFF-version+ 42
-  "What was the question?")
 
 (defun parse-endianness (stream)
   (let ((buffer (read-bytes stream 2)))
@@ -97,60 +78,44 @@
 	   ;; Motorola's big endian
 	   :big-endian)
 	  (t
-	   (error 'not-a-TIFF)))))
+	   (error 'not-a-tiff)))))
 
 (defun parse-file-format-version (tiff)
   (read-16bit tiff))
 
-(defun read-IFD-pointer (tiff)
+(defun read-ifd-pointer (tiff)
   (let ((pointer (read-32bit tiff)))
     (when (or (and (< pointer 8)
 		   ;; the last pointer is always zero
 		   (not (zerop pointer)))
 	      (not (zerop (mod pointer 2)))
-	      (let ((end (TIFF-end tiff)))
+	      (let ((end (tiff-end tiff)))
 		(when end
-		  (> pointer (- end (TIFF-start tiff))))))
+		  (> pointer (- end (tiff-start tiff))))))
       (error 'invalid-pointer :pointer pointer))
     pointer))
 
-(defun TIFF-position (tiff &optional position)
-  (- (TIFF-start tiff)
+(defun tiff-position (tiff &optional position)
+  (- (tiff-start tiff)
      (if position
 	 (progn
 	   (assert
-	    (file-position (TIFF-stream tiff)
-			   (+ position (TIFF-start tiff))))
+	    (file-position (tiff-stream tiff)
+			   (+ position (tiff-start tiff))))
 	   position)
-	 (file-position (TIFF-stream tiff)))))
+	 (file-position (tiff-stream tiff)))))
 
-(defun read-IFD-tags-number (tiff)
+(defun read-ifd-tags-number (tiff)
   (read-16bit tiff))
-
-(defconstant +tag-types+
-  '((1 :byte 1)
-    (2 :ascii 1)
-    (3 :short 2)
-    (4 :long 4)
-    (5 :rational 8)
-    (6 :signed-byte 1)
-    (7 :undefined 1)
-    (8 :signed-short 2)
-    (9 :signed-long 4)
-    (10 :signed-rational 8)
-    (11 :float 4)
-    (12 :double 8))
-  "List of supported tag types.  Every type is a triplet consisting
-of: a numeric id, a keyword id, and a length in bytes.")
 
 (defun tag-type-size (type)
   (caddr (find type +tag-types+ :key #'cadr)))
 
 (defun fetch-tag-data (file address length)
-  (TIFF-position file (decode-integer file address))
-  (read-bytes (TIFF-stream file) length))
+  (tiff-position file (decode-integer file address))
+  (read-bytes (tiff-stream file) length))
 
-(defclass TIFF-tag ()
+(defclass tiff-tag ()
   ((id :initarg :id
        :reader tag-id)
    (type :initarg :type
@@ -158,14 +123,14 @@ of: a numeric id, a keyword id, and a length in bytes.")
    (value :initarg :value
 	  :reader tag-value)))
 
-(defclass TIFF-IFD ()
+(defclass tiff-ifd ()
   ((tags :initarg :tags
 	 :type list
 	 :reader ifd-tags)
    (next :initarg :next
 	 :reader ifd-next)))
 
-(defmethod print-object ((object TIFF-tag) stream)
+(defmethod print-object ((object tiff-tag) stream)
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (object stream :type t)
@@ -185,8 +150,10 @@ of: a numeric id, a keyword id, and a length in bytes.")
 		     (decode-integer file buffer :start start :end end))
 		   (parse-data-item (buffer pos)
 		     (case type
-		       (:byte (parse-byte buffer pos))
-		       (:ascii (code-char (aref buffer pos)))
+		       (:byte  
+                        (parse-byte buffer pos))
+		       (:ascii  
+                        (code-char (aref buffer pos)))
 		       ((:short :long)
 			(parse-int buffer (* pos item-size) (* (1+ pos) item-size)))
 		       (:rational
@@ -245,236 +212,10 @@ of: a numeric id, a keyword id, and a length in bytes.")
 	;; the value is in the data field itself
 	data)))
 
-
-(defparameter *tag-ids*
-  '((254 :new-subfile-type)
-    (255 :subfile-type)
-    (256 :image-width)
-    (257 :image-length)
-    (258 :bits-per-sample)
-    (259 :compression ((1 nil)
-		       (2 :CCITT-1d)
-		       (3 :fax-group3)
-		       (4 :fax-group4)
-		       (5 :LZW)
-		       (6 :JPEG)
-		       (7 :JPEG2)	; ???
-		       (8 :ZIP)		; Photoshop extension
-		       (32773 :pack-bits)))
-    (262 :photometric-interpretation ((0 :white-is-zero)
-				      (1 :black-is-zero)
-				      (2 :RGB)
-				      (3 :RGB-palette)
-				      (4 :transparency-mask)
-				      (5 :CMYK)
-				      (6 :YCbCr)
-				      (8 :CIE-Lab)
-				      (9 :ICC-Lab)))
-    (263 :threshholding)
-    (264 :cell-width)
-    (265 :cell-length)
-    (266 :fill-order)
-    (269 :document-name)
-    (270 :image-description)
-    (271 :make)
-    (272 :model)
-    (273 :strip-offsets)
-    (274 :orientation)
-    (277 :samples-per-pixel)
-    (278 :rows-per-strip)
-    (279 :strip-byte-counts)
-    (280 :min-sample-value)
-    (281 :max-sample-value)
-    (282 :x-resolution)
-    (283 :y-resolution)
-    (284 :planar-configuration)
-    (285 :page-name)
-    (286 :x-position)
-    (287 :y-position)
-    (288 :free-offsets)
-    (289 :free-byte-counts)
-    (290 :gray-response-unit)
-    (291 :gray-response-curve)
-    (292 :t4-options)
-    (293 :t6-options)
-    (296 :resolution-unit ((1 nil)
-			   (2 :inch)
-			   (3 :cm)))
-    (297 :page-number)
-    (301 :transfer-function)
-    (305 :software)
-    (306 :date-time)
-    (315 :artist)
-    (316 :host-computer)
-    (317 :predictor)
-    (318 :white-point)
-    (319 :primary-chromaticities)
-    (320 :color-map)
-    (321 :halftone-hints)
-    (322 :tile-width)
-    (323 :tile-length)
-    (324 :tile-offsets)
-    (325 :tile-byte-counts)
-    (330 :sub-ifds)			; PageMaker extension
-    (332 :ink-set)
-    (333 :ink-names)
-    (334 :number-of-inks)
-    (336 :dot-range)
-    (337 :target-printer)
-    (338 :extra-samples)
-    (339 :sample-format)
-    (340 :s-min-sample-value)
-    (341 :s-max-sample-value)
-    (342 :transfer-range)
-    (343 :clip-path)			; PageMaker extension
-    (344 :x-clip-path-units)		; PageMaker extension
-    (345 :y-clip-path-units)		; PageMaker extension
-    (346 :indexed)			; PageMaker extension
-    (347 :JPEG-tables)			; Photoshop extension
-    (351 :OPI-proxy)			; PageMaker extension
-    (512 :JPEG-proc)
-    (513 :JPEG-interchange-format)
-    (514 :JPEG-interchange-format-length)
-    (515 :JPEG-restart-interval)
-    (517 :JPEG-lossless-predictors)
-    (518 :JPEG-point-transforms)
-    (519 :JPEG-q-tables)
-    (520 :JPEG-dc-tables)
-    (521 :JPEG-ac-tables)
-    (529 :y-cb-cr-coefficients)
-    (530 :y-cb-cr-sub-sampling)
-    (531 :y-cb-cr-positioning ((1 :centered)
-			       (2 :cosited)))
-    (532 :reference-black-white)
-    (32781 :image-id)			; PageMaker extension
-    (33432 :copyright)
-    (34665 :exif-IFD)			; Exif extension
-    (34853 :GPS-IFD)			; Exif extension
-    (37724 :image-source-data)		; Photoshop extension
-    (40965 :interoperability-IFD)	; Exif extension
-    (50341 :print-IM)			; Exif extension
-
-    ;; Exif extensions
-    (33434 :exposure-time)
-    (33437 :F-number)
-    (34850 :exposure-program ((0 nil)
-			      (1 :manual)
-			      (2 :normal)
-			      (3 :aperture-priority)
-			      (4 :shutter-priority)
-			      (5 :creative)
-			      (6 :action)
-			      (7 :portrait)
-			      (8 :landscape)))
-    (34852 :spectral-sensitivity)
-    (34855 :ISO-speed-ratings)
-    (34856 :OECF)
-    (36864 :exif-version)
-    (36867 :date-time-original)
-    (36868 :date-time-digitized)
-    (37121 :components-configuration)
-    (37122 :compressed-bits-per-pixel)
-    (37377 :shutter-speed-value)
-    (37378 :aperture-value)
-    (37379 :brightness-value)
-    (37380 :exposure-bias-value)
-    (37381 :max-aperture-value)
-    (37382 :subject-distance)
-    (37383 :metering-mode ((0 nil)
-			   (1 :average)
-			   (2 :center-weighted-average)
-			   (3 :spot)
-			   (4 :multi-spot)
-			   (5 :pattern)
-			   (6 :partial)
-			   (255 :other)))
-    (37384 :light-source ((0 nil)
-			  (1 :daylight)
-			  (2 :fluorescent)
-			  (3 :tungsten)
-			  (4 :flash)
-			  (9 :fine-weather)
-			  (10 :cloudy-weather)
-			  (11 :shade)
-			  (12 :daylight-fluorescent) ; (D 5700 - 7100K)
-			  (13 :day-white-fluorescent) ; (N 4600 - 5400K)
-			  (14 :cool-white-fluorescent) ; (W 3900 - 4500K)
-			  (15 :white-fluorescent) ; (WW 3200 - 3700K)
-			  (17 :standard-light-A)
-			  (18 :standard-light-B)
-			  (19 :standard-light-C)
-			  (20 :d55)
-			  (21 :d65)
-			  (22 :d75)
-			  (23 :d50)
-			  (24 :iso-studio-tungsten)
-			  (255 :other-light-source)))
-    (37385 :flash)
-    (37386 :focal-length)
-    (37396 :subject-area)
-    (37500 :maker-note)
-    (37510 :user-comment)
-    (37520 :subsec-time)
-    (37521 :subsec-time-original)
-    (37522 :subsec-time-digitized)
-    (40960 :flashpix-version)
-    (40961 :color-space)
-    (40962 :pixel-x-dimension)
-    (40963 :pixel-y-dimension)
-    (40964 :related-sound-file)
-    (41483 :flash-energy)
-    (41484 :spatial-frequency-response)
-    (41486 :focal-plane-x-resolution)
-    (41487 :focal-plane-y-resolution)
-    (41488 :focal-plane-resolution-unit)
-    (41492 :subject-location)
-    (41493 :exposure-index)
-    (41495 :sensing-method ((1 :undefined)
-			    (2 :one-chip-color-area)
-			    (3 :two-chip-color-area)
-			    (4 :three-chip-color-area)
-			    (5 :color-sequential-area)
-			    (7 :trilinear)
-			    (8 :color-sequential-linear)))
-    (41728 :file-source ((3 :dsc)))
-    (41729 :scene-type ((1 :direct)))
-    (41730 :CFA-pattern)
-    (41985 :custom-rendered ((0 nil)
-			     (1 t)))
-    (41986 :exposure-mode ((0 :auto)
-			   (1 :manual)
-			   (2 :auto-bracket)))
-    (41987 :white-balance ((0 :auto)
-			   (1 :manual)))
-    (41988 :digital-zoom-ratio ((0 nil)))
-    (41989 :focal-length-in-35mm-film ((0 nil)))
-    (41990 :scene-capture-type ((0 :standard)
-				(1 :landscape)
-				(2 :portrait)
-				(3 :night)))
-    (41991 :gain-control ((0 nil)
-			  (1 :low-gain-up)
-			  (2 :high-gain-up)
-			  (3 :low-gain-down)
-			  (4 :high-gain-down)))
-    (41992 :contrast ((0 :normal)
-		      (1 :soft)
-		      (2 :hard)))
-    (41993 :saturation ((0 :normal)
-			(1 :low)
-			(2 :high)))
-    (41994 :sharpness ((0 :normal)
-		       (1 :soft)
-		       (2 :hard)))
-    (41995 :device-setting-description)
-    (41996 :subject-distance-range)
-    (42016 :image-unique-id)
-    ))
-
 (defun interpret-tag-value (file id value)
   (case id
-    ((:exif-IFD :GPS-IFD :interoperability-IFD)
-     (parse-IFD file value))
+    ((:exif-ifd :gps-ifd :interoperability-ifd)
+     (parse-ifd file value))
     ((:flashpix-version :exif-version)
      (let ((str (map 'string #'code-char value)))
        (cons (parse-integer str :start 0 :end 2)
@@ -624,3 +365,6 @@ of: a numeric id, a keyword id, and a length in bytes.")
        do
 	 (format stream "~&IFD ~A:~%" i)
 	 (print-IFD ifd 2))))
+
+;;; ==============================
+;;; EOF
