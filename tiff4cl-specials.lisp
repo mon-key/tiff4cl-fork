@@ -178,8 +178,8 @@ of: a numeric id, a keyword id, and a length in bytes.")
     (283 :y-resolution)
 
     (284 :planar-configuration 
-     ((1 :contiguous) ;; single image plane 
-      (2 :separate))) ;; separate planes of data 
+     ((1 :contiguous) ;; single image plane -- chunky
+      (2 :separate))) ;; separate planes of data -- planar
 
     (285 :page-name)
     (286 :x-position)
