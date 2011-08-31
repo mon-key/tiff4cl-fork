@@ -1,7 +1,36 @@
+This project is a fork of Walter C. Pelissero tiff4cl
+
+http://wcp.sdf-eu.org/software/tiff4cl-20090828.src.tbz
+http://wcp.sdf-eu.org/software/
+
+The file tiff.lisp was renamed to tiff4cl-tiff.lisp
+
+The file util.lisp was renamed to tiff4cl-util.lisp
+
+The file package.lisp was added.
+
+The file README was added.
+
+This file LICENSE was added. 
+It consolidates the GLPL license header originally found at head of each file in
+the original tiff4cl system.
+
+The file tiff4cl-specials.lisp was added.
+It contains definitions for special variables orginally found in tiff.lisp
+
+The file tiff4cl-conditions.lisp was added.
+It contains condition definitions orginally found in tiff.lisp
+
+The file tiff4cl-floats.lisp was added.
+It contains code orignally found in code.lisp from Pelissero's ie3fp system
+The file tiff4cl-floats.lisp retains its original LGPL license.
+
+;;; ==============================
 
 Copyright (C) 2009 by Walter C. Pelissero
 
 Author: Walter C. Pelissero <walter@pelissero.de>
+Project: tiff4cl
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public License
@@ -17,8 +46,8 @@ Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 02111-1307 USA
 
 ;;; ==============================
-;; portions of the variable *tag-ids* defined in tiff4cl-specials. borrow from
-;; libtiff/tiff.h
+;; portions of the variable *tag-ids* defined in tiff4cl-specials.lisp borrow
+;; from libtiff/tiff.h
  
 Copyright (c) 1988-1997 Sam Leffler
 Copyright (c) 1991-1997 Silicon Graphics, Inc.
