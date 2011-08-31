@@ -38,6 +38,9 @@
 
 (defclass tiff-big-endian-stream (tiff-stream) ())
 
+(defclass tiff-big-endian-stream-nef (tiff-big-endian-stream) 
+  ())
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defgeneric decode-integer (tiff buffer &key start end))
@@ -231,12 +234,22 @@
       (bf :red-eye-suppression 6))
     features))
 
+(declaim (inline %parse-starts-with))
+(defun %parse-starts-with (prefix value)
+  (loop 
+     for i across prefix
+     for j across value
+     always (= i j)))
+
+;; Following adapted from zpb-exif's exif-type parser for user-comment
 (defun parse-user-comment-value (value)
-  (labels ((starts-with (prefix)
-             (loop 
-                for i across prefix
-                for j across value
-                always (= i j)))
+  ;; If VALUE is empty returns the empty string.
+  (declare (inline %parse-starts-with))
+  (labels ( ;; (starts-with (prefix)
+           ;;   (loop 
+           ;;      for i across prefix
+           ;;      for j across value
+           ;;      always (= i j)))
            (string-all-empty-check (mapped-comment)
              ;; For reading the value of an empty user-comment this should be fine.
              ;; However, if we start writing it back out it may not be...
@@ -249,12 +262,21 @@
                (setf first-null
                      (map 'string #'code-char (subseq value 8 first-null)))
                (string-all-empty-check first-null))))
-    (if (or (starts-with #(0 0 0 0 0 0 0 0))
-            ;; (starts-with #(#x41 #x53 #x43 #x49 #x49))
-            (starts-with #(65 83 67 73 73)))
+    ;; (if (or (starts-with #(0 0 0 0 0 0 0 0))
+    ;;         (starts-with #(#x41 #x53 #x43 #x49 #x49)))
+    (if (or (%parse-starts-with #(0 0 0 0 0 0 0 0) value)
+            (%parse-starts-with #(65 83 67 73 73) value))
         ;; ASCII encoding
         (map-comment)
         value)))
+
+(defun parse-maker-note-value (file value)
+  (declare (inline %parse-starts-with))
+  (unless (typep file 'tiff-big-endian-stream-nef)
+    (return-from parse-maker-note-value value))
+  (if (%parse-starts-with  #(78 105 107 111 110) value)
+      :MAKER-NOTE-DATA-NIKON
+      value))
 
 (defun interpret-tag-value (file id value)
   (case id
@@ -282,34 +304,15 @@
      ;;     (bf :flash-present 5)
      ;;     (bf :red-eye-suppression 6))
      ;;   features)
-     (parse-flash-value value)
-     )
-    ;; Following adapted from zpb-exif's exif-type parser for user-comment
+     (parse-flash-value value))    
     (:user-comment 
-     ;; (labels ((starts-with (prefix)
-     ;;            (loop 
-     ;;               for i across prefix
-     ;;               for j across value
-     ;;               always (= i j)))
-     ;;          (string-all-empty-check (mapped-comment)
-     ;;            ;; For reading the value of an empty user-comment this should be fine.
-     ;;            ;; However, if we start writing it back out it may not be...
-     ;;            (if (every #'(lambda (x) (char= #\SPACE x)) mapped-comment)
-     ;;                (make-string 0 :element-type 'character :initial-element #\nul)
-     ;;                mapped-comment))
-     ;;          (map-comment ()
-     ;;            (let ((first-null (or (position 0 value :start 8)
-     ;;                                  (length value))))
-     ;;              (setf first-null
-     ;;                    (map 'string #'code-char (subseq value 8 first-null)))
-     ;;              (string-all-empty-check first-null))))
-     ;;   (if (or (starts-with #(0 0 0 0 0 0 0 0))
-     ;;           ;; (starts-with #(#x41 #x53 #x43 #x49 #x49))
-     ;;           (starts-with #(65 83 67 73 73)))
-     ;;       ;; ASCII encoding
-     ;;       (map-comment)
-     ;;       value))
-     (parse-user-comment-value value))
+     (if (and value (arrayp value))
+         (parse-user-comment-value value)
+         value))
+    (:maker-note
+     (if (and value (arrayp value))
+         (parse-maker-note-value file value)
+         value))
     (t
      (let ((symbolic-mapping (assoc value (caddr (find id *tag-ids* :key #'cadr)))))
        (if symbolic-mapping
@@ -367,12 +370,21 @@
 			      tags)))
     (make-instance 'tiff-ifd :tags tag-objects :next next-ifd)))
 
+;; :TODO It would be better to this check with magicffi instead.
+(defun parse-tiff-stream-check-nef (stream)
+  (string-equal (pathname-type stream) "nef"))
+  
 (defun parse-tiff-stream (stream &optional end)
   (let* ((start (file-position stream))
 	 (endianness (parse-endianness stream))
+         ;; :NOTE This is a preliminary accomodation of .nef files.  Currently
+         ;; we aren't properly descending into the subIFDs or parsing maker-note
+         ;; correctly!
 	 (tiff (make-instance (if (eq endianness :little-endian)
 				  'tiff-little-endian-stream
-				  'tiff-big-endian-stream)
+				  (if (parse-tiff-stream-check-nef stream)
+                                      'tiff-big-endian-stream-nef
+                                      'tiff-big-endian-stream))
 			      :start start
 			      :end end
 			      :stream stream))

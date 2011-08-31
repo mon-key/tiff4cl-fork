@@ -83,43 +83,44 @@ a numeric id, a keyword id, and a length in bytes.")
 ;;     (while (search-forward-regexp "\\(/\\*\\(.*\\)\\*/\\)$" nil t) (replace-match ";;\\2"))))
 ;; 
 (defparameter *tag-ids*
-  '((254 :new-subfile-type)          ; subfile data descriptor 
-    ;; ((1 :FILETYPE-REDUCED-IMAGE)  ; reduced resolution version
-    ;;  (2 :FILETYPE-PAGE)           ; one page of many
-    ;;  (4 :FILETYPE0-MASK))         ; transparency mask
-    (255 :subfile-type)              ; kind of data in subfile
-    ;; (1 :OFILETYPE-IMAGE)          ; full resolution image data
-    ;; (2 :OFILETYPE-REDUCEDIMAGE)   ; reduced size image data
-    ;; (3 :OFILETYPE-PAGE)           ; one page of many
-    (256 :image-width) ; image width in pixels
-    (257 :image-length)    ;; image height in pixels -- :NOTE exiftool reports this as ImageHeight
+  '((254 :new-subfile-type              ; subfile data descriptor 
+     ((1 :REDUCED-IMAGE)                ; reduced resolution version
+      (2 :PAGE)                         ; one page of many
+      (4 :MASK)))                       ; transparency mask
+    (255 :subfile-type                  ; kind of data in subfile
+     ((1 :IMAGE)                        ; full resolution image data
+      (2 :REDUCED-IMAGE)                ; reduced size image data
+      (3 :PAGE)))                       ; one page of many
+
+    (256 :image-width)                  ; image width in pixels
+    (257 :image-length) ;; image height in pixels -- :NOTE exiftool reports this as ImageHeight
     (258 :bits-per-sample) ;; bits per channel (sample)
     
-    (259 :compression ; data compression technique
-     ((1 nil)         ; no compression
-      (2 :ccitt-1d)   ; CCITT modified Huffman RLE
-      (3 :fax-group3) ; CCITT Group 3 fax encoding / CCITT T.4 (TIFF 6 name)
-      (4 :fax-group4) ; CCITT Group 4 fax encoding / CCITT T.6 (TIFF 6 name)
-      (5 :lzw)        ; Lempel-Ziv & Welch
-      (6 :jpeg)       ; 6.0 JPEG
-      (7 :jpeg2)      ; JPEG DCT compression
-      (8 :zip)                     ; :adobe-deflate -- Photoshop extension  -- :NOTE exiftool reports this as "Adobe Deflate". 
-      (32766 :next)                ; NeXT 2-bit RLE
-      (32771 :ccitt-rle-word)      ; #1 w/ word alignment
-      (32809 :thunderscan)         ; ThunderScan RLE
-      (32773 :pack-bits)           ;  Macintosh RLE
-      (32895 :it8-ct-pad)          ; IT8 CT w/padding 
-      (32896 :it8-linework-rle)    ; IT8 Linework RLE 
-      (32897 :it8-monochrome)      ; IT8 Monochrome picture 
-      (32898 :it8-binary-line-art) ; IT8 Binary line art 
-      (32908 :pixarfilm)           ; Pixar companded 10bit LZW 
-      (32909 :pixarlog)            ; Pixar companded 11bit ZIP 
-      (32946 :deflate)             ; Deflate compression 
-      (32947 :dcs)                 ; Kodak DCS encoding 
-      (34661 :jbig)                ; ISO JBIG 
-      (34676 :sgi-log)             ; SGI Log Luminance RLE 
-      (34677 :sgi-log24)           ; SGI Log 24-bit packed 
-      (34712 :jp2000)))            ; Leadtools JPEG2000 
+    (259 :compression     ; data compression technique
+     ((1 :none) ;nil)             ; no compression
+      (2 :ccitt-1d)       ; CCITT modified Huffman RLE
+      (3 :fax-group3)     ; CCITT Group 3 fax encoding / CCITT T.4 (TIFF 6 name)
+      (4 :fax-group4)     ; CCITT Group 4 fax encoding / CCITT T.6 (TIFF 6 name)
+      (5 :lzw)            ; Lempel-Ziv & Welch
+      (6 :jpeg)           ; 6.0 JPEG
+      (7 :jpeg2)          ; JPEG DCT compression
+      (8 :zip) ; :adobe-deflate -- Photoshop extension  -- :NOTE exiftool reports this as "Adobe Deflate". 
+      (32766 :next)                     ; NeXT 2-bit RLE
+      (32771 :ccitt-rle-word)           ; #1 w/ word alignment
+      (32773 :pack-bits)                ;  Macintosh RLE
+      (32809 :thunderscan)              ; ThunderScan RLE
+      (32895 :it8-ct-pad)               ; IT8 CT w/padding 
+      (32896 :it8-linework-rle)         ; IT8 Linework RLE 
+      (32897 :it8-monochrome)           ; IT8 Monochrome picture 
+      (32898 :it8-binary-line-art)      ; IT8 Binary line art 
+      (32908 :pixarfilm)                ; Pixar companded 10bit LZW 
+      (32909 :pixarlog)                 ; Pixar companded 11bit ZIP 
+      (32946 :deflate)                  ; Deflate compression 
+      (32947 :dcs)                      ; Kodak DCS encoding 
+      (34661 :jbig)                     ; ISO JBIG 
+      (34676 :sgi-log)                  ; SGI Log Luminance RLE 
+      (34677 :sgi-log24)                ; SGI Log 24-bit packed 
+      (34712 :jp2000)))                 ; Leadtools JPEG2000 
 
     (262 :photometric-interpretation 
      ((0 :white-is-zero)
@@ -131,21 +132,21 @@ a numeric id, a keyword id, and a length in bytes.")
       (6 :ycbcr)
       (8 :cie-lab)
       (9 :icc-lab)
-      (10 :itu-lab)          ;; ITU L*a*b* 
-      (32844 :cie-log2l)     ;; CIE Log2(L) 
-      (32845 :cie-log2luv))) ;; CIE Log2(L) (u',v') 
+      (10 :itu-lab)                     ; ITU L*a*b* 
+      (32844 :cie-log2l)                ; CIE Log2(L) 
+      (32845 :cie-log2luv)))            ; CIE Log2(L) (u',v') 
 
     (263 :threshholding
-     (1 :bilevel)        ;; b&w art scan 
-     (2 :halftone)       ;; or dithered scan 
-     (3 :error-diffuse)) ;; usually floyd-steinberg 
-
+     (1 :bilevel)                       ; b&w art scan 
+     (2 :halftone)                      ; or dithered scan 
+     (3 :error-diffuse))                ; usually floyd-steinberg 
+    
     (264 :cell-width)
     (265 :cell-length)
 
     (266 :fill-order 
-     ((1 :msb2lsb)   ;; most significant -> least -- exiftool calls this normal
-      (2 :lsb2msb))) ;; least significant -> most -- exiftool calls this reversed
+     ((1 :msb2lsb)   ; most significant -> least -- exiftool calls this normal
+      (2 :lsb2msb))) ; least significant -> most -- exiftool calls this reversed
 
     (269 :document-name)
     (270 :image-description)
@@ -153,15 +154,15 @@ a numeric id, a keyword id, and a length in bytes.")
     (272 :model)
     (273 :strip-offsets)
 
-    (274 :orientation           ; SHORT
-     ((1 :normal)               ; :top-left --  row 0 top, col 0 lhs 
-      (2 :flipped-horizontally) ; :top-right -- row 0 top, col 0 rhs 
-      (3 :rotated-180)          ; :bottom-right -- row 0 bottom, col 0 rhs 
-      (4 :flipped-vertically)   ; :bottom-left --  row 0 bottom, col 0 lhs 
+    (274 :orientation                           ; SHORT
+     ((1 :normal)                               ; :top-left --  row 0 top, col 0 lhs 
+      (2 :flipped-horizontally)                 ; :top-right -- row 0 top, col 0 rhs 
+      (3 :rotated-180)                          ; :bottom-right -- row 0 bottom, col 0 rhs 
+      (4 :flipped-vertically)                   ; :bottom-left --  row 0 bottom, col 0 lhs 
       (5 :rotated-270-and-flipped-horizontally) ; :left-top -- row 0 lhs, col 0 top 
-      (6 :rotated-270)                  ; :right-top --  row 0 rhs, col 0 top 
-      (7 :rotated-90-and-flipped-vertically) ; :right-bottom -- row 0 rhs, col 0 bottom 
-      (8 :rotated-90)))               ; :left-bottom -- row 0 lhs, col 0 bottom 
+      (6 :rotated-270)                          ; :right-top --  row 0 rhs, col 0 top 
+      (7 :rotated-90-and-flipped-vertically)    ; :right-bottom -- row 0 rhs, col 0 bottom 
+      (8 :rotated-90)))                         ; :left-bottom -- row 0 lhs, col 0 bottom 
 
     (277 :samples-per-pixel)
     (278 :rows-per-strip)
@@ -172,8 +173,8 @@ a numeric id, a keyword id, and a length in bytes.")
     (283 :y-resolution)
 
     (284 :planar-configuration 
-     ((1 :contiguous) ;; single image plane -- chunky
-      (2 :separate))) ;; separate planes of data -- planar
+     ((1 :contiguous)                   ; single image plane -- chunky
+      (2 :separate)))                   ; separate planes of data -- planar
 
     (285 :page-name)
     (286 :x-position)
@@ -191,40 +192,40 @@ a numeric id, a keyword id, and a length in bytes.")
     (291 :gray-response-curve)
 
     (292 :t4-options
-     ((1 :2d-encoding)  ;; 2-dimensional coding 
-      (2 :uncompressed) ;; data not compressed 
-      (4 :fill-bits)))  ;; fill to byte boundary 
-
+     ((1 :2d-encoding)                  ; 2-dimensional coding 
+      (2 :uncompressed)                 ; data not compressed 
+      (4 :fill-bits)))                  ; fill to byte boundary 
+    
     (293 :t6-options
-     (3 :uncompressed)) ;; data not compressed
+     (3 :uncompressed))                 ; data not compressed
 
     (296 :resolution-unit 
-     ((1 nil)   ;; no meaningful units
-      (2 :inch) ;; english
+     ((1 nil)                           ; no meaningful units
+      (2 :inch)                         ; english
       ;; (3 :CENTIMETER)
-      (3 :cm))) ;; metric
+      (3 :cm)))                         ; metric
 
-    (297 :page-number) ;; page numbers of multi-page :NOTE this is returned as an array.
+    (297 :page-number) ; page numbers of multi-page :NOTE this is returned as an array.
     
-    (300 :color-response-unit ;; color curve accuracy per unit
+    (300 :color-response-unit           ; color curve accuracy per unit
      ((1 :tenths)             
       (2 :hundredths)         
       (3 :thousandths)        
       (4 :ten-thousandths)    
       (5 :hundred-thousandths)))
 
-    (301 :transfer-function) ;; colorimetry info
-    (305 :software)          ;; name & release
-    (306 :date-time)         ;; creation date and time
-    (315 :artist)            ;; creator of image
-    (316 :host-computer)     ;; machine where created
+    (301 :transfer-function)            ; colorimetry info
+    (305 :software)                     ; name & release
+    (306 :date-time)                    ; creation date and time
+    (315 :artist)                       ; creator of image
+    (316 :host-computer)                ; machine where created
 
-    (317 :predictor ;; prediction scheme w/ LZW
-     ((1 nil)       ;; no prediction scheme use
-      (2 :horizontal) ;; horizontal differencing  :NOTE exiftool reports "Horizontal differencing"
-      (3 :floating-point))) ;; floating point predictor
-
-    (318 :white-point) ;;  image-whitepoint
+    (317 :predictor                     ; prediction scheme w/ LZW
+     ((1 nil)                           ; no prediction scheme use
+      (2 :horizontal)                   ; horizontal differencing -- exiftool "Horizontal differencing"
+      (3 :floating-point)))             ; floating point predictor
+    
+    (318 :white-point)                  ;  image-whitepoint
     (319 :primary-chromaticities)
     (320 :color-map)
     (321 :halftone-hints)
@@ -232,20 +233,23 @@ a numeric id, a keyword id, and a length in bytes.")
     (323 :tile-length)
     (324 :tile-offsets)
     (325 :tile-byte-counts)
-    (326 :bad-fax-lines) ;;  lines w/ wrong pixel count
 
-    (327 :clean-fax-data ;; regenerated line info 
-     ((0 :clean)         ;; no errors detected 
-      (1 :regenerated)   ;; receiver regenerated lines 
-      (2 :unclean)))     ;; uncorrected errors exist 
+    (326 :bad-fax-lines)                ; lines w/ wrong pixel count
 
-    (328 :max-bad-fax-lines) ;; max consecutive bad lines
+    (327 :clean-fax-data                ; regenerated line info 
+     ((0 :clean)                        ; no errors detected 
+      (1 :regenerated)                  ; receiver regenerated lines 
+      (2 :unclean)))                    ; uncorrected errors exist 
+
+    (328 :max-bad-fax-lines)            ; max consecutive bad lines
+
+    ;; :SEE (URL `http://partners.adobe.com/public/developer/en/tiff/TIFFPM6.pdf') pg 4 
+    ;; :NOTE Nikon nef IFD 0 contains offsets to the 2 child IFDs
+    (330 :sub-ifds)                     ; subimage descriptors - PageMaker extension
     
-    (330 :sub-ifds) ;; subimage descriptors - PageMaker extension
-    
-    (332 :ink-set      ;; inks in separated image 
-     ((1 :cmyk)        ;; cyan-magenta-yellow-black color
-      (2 :multi-ink))) ;; multi-ink or hi-fi color
+    (332 :ink-set                       ; inks in separated image 
+     ((1 :cmyk)                         ; cyan-magenta-yellow-black color
+      (2 :multi-ink)))                  ; multi-ink or hi-fi color
 
     (333 :ink-names)
     (334 :number-of-inks)
@@ -253,32 +257,32 @@ a numeric id, a keyword id, and a length in bytes.")
     (337 :target-printer)
 
     (338 :extra-samples
-     ((0 :unspecified)          ;; unspecified data 
-      (1 :associated-alpha)     ;; associated alpha data 
-      (2 :unassociated-alpha))) ;; unassociated alpha data 
+     ((0 :unspecified)                  ; unspecified data 
+      (1 :associated-alpha)             ; associated alpha data 
+      (2 :unassociated-alpha)))         ; unassociated alpha data 
 
     (339 :sample-format
-     ((1 :unisigned-integer)             ;; unsigned integer data 
-      (2 :signed-integer)                ;; signed integer data 
-      (3 :ieee-floating-point)           ;; IEEE floating point data 
-      (4 :untyped)                       ;; untyped data 
-      (5 :complex-signed-integer)        ;; complex signed int 
-      (6 :complex-ieee-floating-point))) ;; complex ieee floating 
+     ((1 :unisigned-integer)             ; unsigned integer data 
+      (2 :signed-integer)                ; signed integer data 
+      (3 :ieee-floating-point)           ; IEEE floating point data 
+      (4 :untyped)                       ; untyped data 
+      (5 :complex-signed-integer)        ; complex signed int 
+      (6 :complex-ieee-floating-point))) ; complex ieee floating 
 
     (340 :s-min-sample-value)
     (341 :s-max-sample-value)
     (342 :transfer-range)
-    (343 :clip-path)			; PageMaker extension
-    (344 :x-clip-path-units)		; PageMaker extension
-    (345 :y-clip-path-units)		; PageMaker extension
-    (346 :indexed)			; PageMaker extension
-    (347 :jpeg-tables)			; Photoshop extension
-    (351 :opi-proxy)			; PageMaker extension
+    (343 :clip-path)                    ; PageMaker extension
+    (344 :x-clip-path-units)            ; PageMaker extension
+    (345 :y-clip-path-units)            ; PageMaker extension
+    (346 :indexed)                      ; PageMaker extension
+    (347 :jpeg-tables)                  ; Photoshop extension
+    (351 :opi-proxy)                    ; PageMaker extension
     
-    (512 :JPEG-proc
-     ((1 :baseline)    ;; baseline sequential 
-      (14 :lossless))) ;; Huffman coded lossless 
-
+    (512 :jpeg-proc
+     ((1 :baseline)                     ; baseline sequential 
+      (14 :lossless)))                  ; Huffman coded lossless 
+    
     (513 :jpeg-interchange-format)
     (514 :jpeg-interchange-format-length)
     (515 :jpeg-restart-interval)
@@ -289,23 +293,24 @@ a numeric id, a keyword id, and a length in bytes.")
     (521 :jpeg-ac-tables)
 
     ;; 4.5.3 Basic Structure of YCbCr Uncompressed Data
-    (529 :ycbcr-coefficients) ;; RGB-YCbCr color transformation matrix coefficients
-    (530 :ycbcr-sub-sampling) ;; Chrominance subsampling information
-    (531 :ycbcr-positioning ;; short -- Information on matching/nonmatching of chrominance and luminance samples
+    (529 :ycbcr-coefficients) ; RGB-YCbCr color transformation matrix coefficients
+    (530 :ycbcr-sub-sampling) ; Chrominance subsampling information
+    
+    (531 :ycbcr-positioning ; short -- Information on matching/nonmatching of chrominance and luminance samples
      ((1 :centered)
       (2 :co-sited)))
 
     (532 :reference-black-white)
-    (32781 :image-id)            ;; PageMaker extension
-    (32954 :region-tack-point)	 ;; region-xform tack point 
-    (32955 :region-warp-corners) ;; warp quadrilateral 
-    (32956 :region-affine)	 ;; affine transformation mat 
+    (32781 :image-id)                   ; PageMaker extension
+    (32954 :region-tack-point)          ; region-xform tack point 
+    (32955 :region-warp-corners)        ; warp quadrilateral 
+    (32956 :region-affine)              ; affine transformation mat 
 
     ;; tags 32995-32999 are private tags registered to SGI
-    (32995 :matteing)    ;; use ExtraSamples 
-    (32996 :data-type)   ;; use SampleFormat 
-    (32997 :image-depth) ;; z depth of image 
-    (32998 :tile-depth)  ;; z depth/data tile 
+    (32995 :matteing)                   ; use ExtraSamples 
+    (32996 :data-type)                  ; use SampleFormat 
+    (32997 :image-depth)                ; z depth of image 
+    (32998 :tile-depth)                 ; z depth/data tile 
 
     ;; tags 33300-33309 are private tags registered to Pixar
     ;;
@@ -315,60 +320,59 @@ a numeric id, a keyword id, and a length in bytes.")
     ;; The TIFFTAG_XPOSITION and TIFFTAG_YPOSITION can be used
     ;; to determine the position of the smaller image in the larger one.
     ;; 
-    (33300 :pixar-image-full-width)  ;; full image size in x 
-    (33301 :pixar-image-full-length) ;; full image size in y 
+    (33300 :pixar-image-full-width)     ; full image size in x 
+    (33301 :pixar-image-full-length)    ; full image size in y 
     ;; Tags 33302-33306 are used to identify special image modes and data
     ;; used by Pixar's texture formats.
-    (33302 :pixar-texture-format) ;; texture map format 
-    (33303 :pixar-wrap-modes)     ;; s & t wrap modes 
-    (33304 :pixar-fov-cotan)      ;; cotan(fov) for env. maps 
+    (33302 :pixar-texture-format)       ; texture map format 
+    (33303 :pixar-wrap-modes)           ; s & t wrap modes 
+    (33304 :pixar-fov-cotan)            ; cotan(fov) for env. maps 
     (33305 :pixar_matrix_world-to-screen)
     (33306 :pixar_matrix_world-to-camera)
-
+    
     ;;  tag 33405 is a private tag registered to Eastman Kodak
-    (33405 :writer-serial-number) ;;   device serial number
+    (33405 :writer-serial-number)       ;   device serial number
 
     ;; tag 33432 is listed in the 6.0 spec w/ unknown ownership
     (33432 :copyright)
-    ;;
+
     ;; 34016-34029 are reserved for ANSI IT8 TIFF/IT <dkelly@apago.com) 
-    ;;
-    (34016 :it8-site)                          ;; site name 
-    (34017 :it8-color-sequence)                ;; color seq. [rgb,cmyk,etc] 
-    (34018 :it8-header)                        ;; ddes header 
-    (34019 :it8-raster-padding)                ;; raster scanline padding 
-    (34020 :it8-bits-per-run-length)           ;; # of bits in short run 
-    (34021 :it8-bits-per-extended-run-length ) ;; # of bits in long run 
-    (34022 :it8-colortable)                    ;; lw colortable 
-    (34023 :it8-image-color-indicator)         ;; bp/bl image color switch 
-    (34024 :it8-bk-gcolor-indicator)           ;; bp/bl bg color switch 
-    (34025 :it8-image-color-value)             ;; bp/bl image color value 
-    (34026 :it8-bk-gcolor-value)               ;; bp/bl bg color value 
-    (34027 :it8-pixel-intensity-range)         ;; mp pixel intensity value 
-    (34028 :it8-transparency-indicator)        ;; hc transparency switch 
-    (34029 :it8-color-characterization)        ;; color character. table 
-    (34030 :it8-hc-usage)                      ;; hc usage indicator 
-    (34031 :it8-trap-indicator)  ;;trapping indicator (untrapped=0, trapped=1)
-    (34032 :it8-cmyk-equivalent) ;; cmyk color equivalents 
+    (34016 :it8-site)                          ; site name 
+    (34017 :it8-color-sequence)                ; color seq. [rgb,cmyk,etc] 
+    (34018 :it8-header)                        ; ddes header 
+    (34019 :it8-raster-padding)                ; raster scanline padding 
+    (34020 :it8-bits-per-run-length)           ; # of bits in short run 
+    (34021 :it8-bits-per-extended-run-length ) ; # of bits in long run 
+    (34022 :it8-colortable)                    ; lw colortable 
+    (34023 :it8-image-color-indicator)         ; bp/bl image color switch 
+    (34024 :it8-bk-gcolor-indicator)           ; bp/bl bg color switch 
+    (34025 :it8-image-color-value)             ; bp/bl image color value 
+    (34026 :it8-bk-gcolor-value)               ; bp/bl bg color value 
+    (34027 :it8-pixel-intensity-range)         ; mp pixel intensity value 
+    (34028 :it8-transparency-indicator)        ; hc transparency switch 
+    (34029 :it8-color-characterization)        ; color character. table 
+    (34030 :it8-hc-usage)                      ; hc usage indicator 
+    (34031 :it8-trap-indicator)    ; trapping indicator (untrapped=0, trapped=1)
+    (34032 :it8-cmyk-equivalent)   ; cmyk color equivalents 
 
     ;; tags 34232-34236 are private tags registered to Texas Instruments 
-    (34232 :frame-count) ;; Sequence Frame Count 
+    (34232 :frame-count)                ; Sequence Frame Count 
 
     ;; tag 34377 is private tag registered to Adobe for PhotoShop 
     (34377 :photoshop)
 
-    (34675 :icc-profile)  ;; ICC profile data
-    (34750 :jbig-options) ;; JBIG options
+    (34675 :icc-profile)                ; ICC profile data
+    (34750 :jbig-options)               ; JBIG options
 
-    (34908 :fax-recv-params) ;; encoded class 2 ses. parms 
-    (34909 :fax-sub-address) ;; received subaddr string 
-    (34910 :fax-recv-time)   ;; receive time (secs) 
-    (34911 :fax-dcs)         ;; encoded fax ses. params, Table 2/T.30 
+    (34908 :fax-recv-params)            ; encoded class 2 ses. parms 
+    (34909 :fax-sub-address)            ; received subaddr string 
+    (34910 :fax-recv-time)              ; receive time (secs) 
+    (34911 :fax-dcs)                    ; encoded fax ses. params, Table 2/T.30 
 
     ;; tags 37439-37443 are registered to SGI <gregl@sgi.com>
-    (37439 :sample-to-nits) ;; Sample value to Nits
-    (34929 :fedex-edr) ;; tag 34929 is a private tag registered to FedEx with unknown use
-    (37724 :image-source-data) ;; Photoshop extension
+    (37439 :sample-to-nits)             ; Sample value to Nits
+    (34929 :fedex-edr) ; tag 34929 is a private tag registered to FedEx with unknown use
+    (37724 :image-source-data)          ; Photoshop extension
     
     (50341 :print-im) ;; Exif extension
 
@@ -400,7 +404,7 @@ a numeric id, a keyword id, and a length in bytes.")
     (50730 :baseline-exposure)         ; how much to move the zero point 
     (50731 :baseline-noise)            ; relative noise level 
     (50732 :baseline-sharpness)        ; relative amount of sharpening 
-    (50733 :bayer-green-split)         ; how closely values of green pixels in the blue/green rows track values of green pixels in red/green rows
+    (50733 :bayer-green-split)         ; how closely values of green pixels in blue/green rows track values of green pixels in red/green rows
     (50734 :linear-response-limit)     ; non-linear encoding range 
     (50735 :camera-serial-number)      ; camera's serial number 
     (50736 :lens-info)                 ; info about the lens 
@@ -424,13 +428,15 @@ a numeric id, a keyword id, and a length in bytes.")
 
     ;; Exif extensions
     ;; tags 34665, 34853 and 40965 are documented in EXIF specification -- 4.6.3 Exif-specific IFD
-    ;;
-    (34665 :exif-ifd) ; `interpret-tag-value' -- Exif extension
-    (34853 :gps-ifd)  ; `interpret-tag-value' -- Exif extension -- :NOTE zpb-exif-1.2.1/exif.lisp defines a tagset for GPS-ifd
 
-    (33434 :exposure-time)   ; FLOATABLE-RATIONAL
-    (33437 :f-number)        ; FLOATABLE-RATIONAL
-    (34850 :exposure-program ; SHORT
+    ;; :NOTE Nikon Nef  exif-ifd contains a pointer to the Makernote IFD 
+    (34665 :exif-ifd); `interpret-tag-value' -- Exif extension
+    (34853 :gps-ifd) ; `interpret-tag-value' -- Exif extension -- :NOTE zpb-exif-1.2.1/exif.lisp defines a tagset for GPS-ifd
+    (40965 :interoperability-ifd) ; `interpret-tag-value' -- 4.6.3 Exif-specific IFD
+
+    (33434 :exposure-time)              ; FLOATABLE-RATIONAL
+    (33437 :f-number)                   ; FLOATABLE-RATIONAL
+    (34850 :exposure-program            ; SHORT
      ((0 :not-defined)
       (1 :manual)
       (2 :normal-program)
@@ -440,21 +446,21 @@ a numeric id, a keyword id, and a length in bytes.")
       (6 :action-program)
       (7 :portrait-mode)
       (8 :landscape-mode)))
-    (34852 :spectral-sensitivity) ; ASCII
+    (34852 :spectral-sensitivity)       ; ASCII
 
-    (34855 :iso-speed-ratings) ; SHORT
-    (34856 :oecf)              ;  Optoelectric conversion factor
+    (34855 :iso-speed-ratings)          ; SHORT
+    (34856 :oecf)                       ; Optoelectric conversion factor
     (36864 :exif-version)
-    (36867 :date-time-original)  ; Date and time of original data generation
-    (36868 :date-time-digitized) ; Date and time of digital data generation
-    (37121 :components-configuration)  ; Meaning of each component
-    (37122 :compressed-bits-per-pixel) ; Image compression mode
-    (37377 :shutter-speed-value)       ; FLOATABLE-RATIONAL
-    (37378 :aperture-value)            ; FLOATABLE-RATIONAL
-    (37379 :brightness-value)          ; SIGNED-RATIONAL
-    (37380 :exposure-bias-value)       ; SIGNED-RATIONAL
-    (37381 :max-aperture-value) ; FLOATABLE-RATIONAL -- Maximum lens aperture
-    (37382 :subject-distance)   ; FLOATABLE-RATIONAL -- Subject distance
+    (36867 :date-time-original)         ; Date and time of original data generation
+    (36868 :date-time-digitized)        ; Date and time of digital data generation
+    (37121 :components-configuration)   ; Meaning of each component
+    (37122 :compressed-bits-per-pixel)  ; Image compression mode
+    (37377 :shutter-speed-value)        ; FLOATABLE-RATIONAL
+    (37378 :aperture-value)             ; FLOATABLE-RATIONAL
+    (37379 :brightness-value)           ; SIGNED-RATIONAL
+    (37380 :exposure-bias-value)        ; SIGNED-RATIONAL
+    (37381 :max-aperture-value)         ; FLOATABLE-RATIONAL -- Maximum lens aperture
+    (37382 :subject-distance)           ; FLOATABLE-RATIONAL -- Subject distance
     (37383 :metering-mode 
      ((0 :unknown) ;; nil)
       (1 :average)
@@ -487,15 +493,25 @@ a numeric id, a keyword id, and a length in bytes.")
       (24 :iso-studio-tungsten)
       (255 :other-light-source)))
 
-    (37385 :flash)        ;; SHORT -- `interpret-tag-value'
+    (37385 :flash) ;; SHORT -- `interpret-tag-value', `parse-flash-value'
 
-    (37386 :focal-length) ; FLOATABLE-RATIONAL
-    (37396 :subject-area) ; SHORT
-    (37500 :maker-note)   ; Manufacturer notes  :NOTE Nikon .nef files use this to hold proprietary raw data
-    (37510 :user-comment)
-    (37520 :sub-sec-time)           ; ASCII
-    (37521 :sub-sec-time-original)  ; ASCII
-    (37522 :sub-sec-time-digitized) ; ASCII
+    (37386 :focal-length)               ; FLOATABLE-RATIONAL
+    (37396 :subject-area)               ; SHORT
+
+    ;; :NOTE Nikon .nef files have mime magic which indicates they are of type
+    ;; tiff and we can in fact parse a .nef files with tiff4cl However, it is
+    ;; currently only finding the jpeg data. Also, the maker-note tag is used to
+    ;; hold proprietary raw data and it is of no use when dumping the contents
+    ;; with `print-tiff-tags' to see the stuff it contains (at least not until it is parsed further...)
+    ;; (URL `http://lclevy.free.fr/nef/')
+    ;; :NOTE :SEE exif tag maker-note-safety below
+    (37500 :maker-note)                 ; Manufacturer notes
+
+    (37510 :user-comment) ; `parse-user-comment-value' if comment is empty returns the empty string.
+
+    (37520 :sub-sec-time)               ; ASCII
+    (37521 :sub-sec-time-original)      ; ASCII
+    (37522 :sub-sec-time-digitized)     ; ASCII
     
     (40960 :flashpix-version) ;; `interpret-tag-value' 
     
@@ -503,19 +519,19 @@ a numeric id, a keyword id, and a length in bytes.")
      ((1     :srgb)
       (65535 :uncalibrated)))
 
-    (40962 :pixel-x-dimension) ; Valid image width
-    (40963 :pixel-y-dimension) ; valid image height
+    (40962 :pixel-x-dimension)          ; Valid image width
+    (40963 :pixel-y-dimension)          ; valid image height
     (40964 :related-sound-file)
 
-    (40965 :interoperability-IFD) ; `interpret-tag-value' -- 4.6.3 Exif-specific IFD
 
-    (41483 :flash-energy) ; :RATIONAL
+
+    (41483 :flash-energy)               ; :RATIONAL
     (41484 :spatial-frequency-response) 
-    (41486 :focal-plane-x-resolution)    ; FLOATABLE-RATIONAL
-    (41487 :focal-plane-y-resolution)    ; FLOATABLE-RATIONAL
-    (41488 :focal-plane-resolution-unit) ; SHORT
-    (41492 :subject-location)            ; SHORT
-    (41493 :exposure-index)              ; RATIONAL
+    (41486 :focal-plane-x-resolution)     ; FLOATABLE-RATIONAL
+    (41487 :focal-plane-y-resolution)     ; FLOATABLE-RATIONAL
+    (41488 :focal-plane-resolution-unit)  ; SHORT
+    (41492 :subject-location)             ; SHORT
+    (41493 :exposure-index)               ; RATIONAL
     
     ;; (41495 :sensing-method 
     ;;  ((1 :undefined)
@@ -541,19 +557,19 @@ a numeric id, a keyword id, and a length in bytes.")
     (41729 :scene-type 
      ((1 :direct)))
     (41730 :CFA-pattern)
-    (41985 :custom-rendered ; SHORT
+    (41985 :custom-rendered             ; SHORT
      ((0 nil)
       (1 t))) 
     (41986 :exposure-mode 
      ((0 :auto-exposure)
       (1 :manual-exposure)
       (2 :auto-bracket)))
-    (41987 :white-balance  ; SHORT
+    (41987 :white-balance               ; SHORT
      ((0 :auto)
       (1 :manual)))
-    (41988 :digital-zoom-ratio ; RATIONAL
+    (41988 :digital-zoom-ratio          ; RATIONAL
      ((0 nil)))
-    (41989 :focal-length-in-35mm-film ; SHORT
+    (41989 :focal-length-in-35mm-film   ; SHORT
      ((0 nil)))
     (41990 :scene-capture-type 
      ((0 :standard)
@@ -584,7 +600,7 @@ a numeric id, a keyword id, and a length in bytes.")
       (1 :macro)
       (2 :close-view)
       (3 :distant-view)))
-    (42016 :image-unique-id) ;; ascii
+    (42016 :image-unique-id) ; ASCII
     ))
 
 ;;; ==============================
