@@ -212,6 +212,50 @@
 	;; the value is in the data field itself
 	data)))
 
+(defun parse-flash-value (value)
+  (let ((features '()))
+    (macrolet ((bf (feature bit)
+                 `(when (logbitp ,bit value)
+                    (push ,feature features))))
+      (bf :fired 0)
+      (when (logbitp 2 value)
+        (push (if (logbitp 1 value)
+                  :strobe-detected
+                  :strobe-undetected)
+              features))
+      (case (ldb (byte 2 3) value)
+        (1 (push :flash-forced-on features))
+        (2 (push :flash-disabled features))
+        (3 (push :auto-mode features)))
+      (bf :flash-present 5)
+      (bf :red-eye-suppression 6))
+    features))
+
+(defun parse-user-comment-value (value)
+  (labels ((starts-with (prefix)
+             (loop 
+                for i across prefix
+                for j across value
+                always (= i j)))
+           (string-all-empty-check (mapped-comment)
+             ;; For reading the value of an empty user-comment this should be fine.
+             ;; However, if we start writing it back out it may not be...
+             (if (every #'(lambda (x) (char= #\SPACE x)) mapped-comment)
+                 (make-string 0 :element-type 'character :initial-element #\nul)
+                 mapped-comment))
+           (map-comment ()
+             (let ((first-null (or (position 0 value :start 8)
+                                   (length value))))
+               (setf first-null
+                     (map 'string #'code-char (subseq value 8 first-null)))
+               (string-all-empty-check first-null))))
+    (if (or (starts-with #(0 0 0 0 0 0 0 0))
+            ;; (starts-with #(#x41 #x53 #x43 #x49 #x49))
+            (starts-with #(65 83 67 73 73)))
+        ;; ASCII encoding
+        (map-comment)
+        value)))
+
 (defun interpret-tag-value (file id value)
   (case id
     ((:exif-ifd :gps-ifd :interoperability-ifd)
@@ -221,23 +265,51 @@
        (cons (parse-integer str :start 0 :end 2)
 	     (parse-integer str :start 2))))
     (:flash
-     (let ((features '()))
-       (macrolet ((bf (feature bit)
-		    `(when (logbitp ,bit value)
-		       (push ,feature features))))
-	 (bf :fired 0)
-	 (when (logbitp 2 value)
-	   (push (if (logbitp 1 value)
-		     :strobe-detected
-		     :strobe-undetected)
-		 features))
-	 (case (ldb (byte 2 3) value)
-	   (1 (push :flash-forced-on features))
-	   (2 (push :flash-disabled features))
-	   (3 (push :auto-mode features)))
-	 (bf :flash-present 5)
-	 (bf :red-eye-suppression 6))
-       features))
+     ;; (let ((features '()))
+     ;;   (macrolet ((bf (feature bit)
+     ;;    	    `(when (logbitp ,bit value)
+     ;;    	       (push ,feature features))))
+     ;;     (bf :fired 0)
+     ;;     (when (logbitp 2 value)
+     ;;       (push (if (logbitp 1 value)
+     ;;    	     :strobe-detected
+     ;;    	     :strobe-undetected)
+     ;;    	 features))
+     ;;     (case (ldb (byte 2 3) value)
+     ;;       (1 (push :flash-forced-on features))
+     ;;       (2 (push :flash-disabled features))
+     ;;       (3 (push :auto-mode features)))
+     ;;     (bf :flash-present 5)
+     ;;     (bf :red-eye-suppression 6))
+     ;;   features)
+     (parse-flash-value value)
+     )
+    ;; Following adapted from zpb-exif's exif-type parser for user-comment
+    (:user-comment 
+     ;; (labels ((starts-with (prefix)
+     ;;            (loop 
+     ;;               for i across prefix
+     ;;               for j across value
+     ;;               always (= i j)))
+     ;;          (string-all-empty-check (mapped-comment)
+     ;;            ;; For reading the value of an empty user-comment this should be fine.
+     ;;            ;; However, if we start writing it back out it may not be...
+     ;;            (if (every #'(lambda (x) (char= #\SPACE x)) mapped-comment)
+     ;;                (make-string 0 :element-type 'character :initial-element #\nul)
+     ;;                mapped-comment))
+     ;;          (map-comment ()
+     ;;            (let ((first-null (or (position 0 value :start 8)
+     ;;                                  (length value))))
+     ;;              (setf first-null
+     ;;                    (map 'string #'code-char (subseq value 8 first-null)))
+     ;;              (string-all-empty-check first-null))))
+     ;;   (if (or (starts-with #(0 0 0 0 0 0 0 0))
+     ;;           ;; (starts-with #(#x41 #x53 #x43 #x49 #x49))
+     ;;           (starts-with #(65 83 67 73 73)))
+     ;;       ;; ASCII encoding
+     ;;       (map-comment)
+     ;;       value))
+     (parse-user-comment-value value))
     (t
      (let ((symbolic-mapping (assoc value (caddr (find id *tag-ids* :key #'cadr)))))
        (if symbolic-mapping
@@ -282,6 +354,9 @@
 		  for i from 0 below (read-ifd-tags-number tiff)
 		  collect (parse-tag tiff)))
 	 (next-ifd (read-ifd-pointer tiff))
+         ;; :NOTE Why shouldn't we use an flet'd function for the lambda form
+         ;; below?  Likewise, why not separate the entire body of the
+         ;; tag-objects binding to a dedicated function?
 	 (tag-objects (mapcar #'(lambda (tag)
 				  (destructuring-bind (id type count data) tag
 				    (let ((value (get-tag-value tiff type count data)))
@@ -290,7 +365,7 @@
 						     :type type
 						     :value (interpret-tag-value tiff id value)))))
 			      tags)))
-    (make-instance 'TIFF-IFD :tags tag-objects :next next-ifd)))
+    (make-instance 'tiff-ifd :tags tag-objects :next next-ifd)))
 
 (defun parse-tiff-stream (stream &optional end)
   (let* ((start (file-position stream))
