@@ -42,11 +42,11 @@
 
 (defgeneric decode-integer (tiff buffer &key start end))
 
-(defmethod decode-integer ((tiff TIFF-little-endian-stream) buffer &key (start 0) end)
+(defmethod decode-integer ((tiff tiff-little-endian-stream) buffer &key (start 0) end)
   (decode-integer-le buffer
 		     :start start
 		     :end end))
-(defmethod decode-integer ((tiff TIFF-big-endian-stream) buffer &key (start 0) end)
+(defmethod decode-integer ((tiff tiff-big-endian-stream) buffer &key (start 0) end)
   (decode-integer-be buffer
 		     :start start
 		     :end end))
@@ -182,12 +182,12 @@
 					   (+ (* pos item-size) (/ item-size 2))
 					   (* (1+ pos) item-size)))))
 		       (:float
-			(ieee-754:decode-ieee-float
+			(decode-ieee-float ;; ieee-754:decode-ieee-float
 			 (parse-int buffer
 					(* pos item-size)
 					(* (1+ pos) item-size))))
 		       (:double
-			(ieee-754:decode-ieee-double
+			(decode-ieee-double ;; ieee-754:decode-ieee-double
 			 (parse-int buffer
 					(* pos item-size)
 					(* (1+ pos) item-size))))))
@@ -263,7 +263,7 @@
   (read-32bit tiff))
 
 (defun read-tag-data (tiff)
-  (read-bytes (TIFF-stream tiff) 4))
+  (read-bytes (tiff-stream tiff) 4))
 
 (defun parse-tag (tiff)
   (let* ((id (read-tag-id tiff))
@@ -272,73 +272,73 @@
 	 (data (read-tag-data tiff)))
     (list id type n data)))
 
-(defun parse-IFD (tiff &optional position)
+(defun parse-ifd (tiff &optional position)
   (when position
-    (TIFF-position tiff position))
+    (tiff-position tiff position))
   ;; First read the tags data and then create the objects, because
   ;; get-tag-value can seek through the file to fetch the data values,
   ;; thus disrupting the sequential read we do here.
   (let* ((tags (loop
-		  for i from 0 below (read-IFD-tags-number tiff)
+		  for i from 0 below (read-ifd-tags-number tiff)
 		  collect (parse-tag tiff)))
-	 (next-ifd (read-IFD-pointer tiff))
+	 (next-ifd (read-ifd-pointer tiff))
 	 (tag-objects (mapcar #'(lambda (tag)
 				  (destructuring-bind (id type count data) tag
 				    (let ((value (get-tag-value tiff type count data)))
-				      (make-instance 'TIFF-tag
+				      (make-instance 'tiff-tag
 						     :id id
 						     :type type
 						     :value (interpret-tag-value tiff id value)))))
 			      tags)))
     (make-instance 'TIFF-IFD :tags tag-objects :next next-ifd)))
 
-(defun parse-TIFF-stream (stream &optional end)
+(defun parse-tiff-stream (stream &optional end)
   (let* ((start (file-position stream))
 	 (endianness (parse-endianness stream))
 	 (tiff (make-instance (if (eq endianness :little-endian)
-				  'TIFF-little-endian-stream
-				  'TIFF-big-endian-stream)
+				  'tiff-little-endian-stream
+				  'tiff-big-endian-stream)
 			      :start start
 			      :end end
 			      :stream stream))
 	 (version (parse-file-format-version tiff)))
-    (unless (= version +TIFF-version+)
+    (unless (= version +tiff-version+)
       (error 'wrong-version :version version))
     (let ((ifds '())
-	  (address (read-IFD-pointer tiff)))
+	  (address (read-ifd-pointer tiff)))
       (loop
 	 (when (zerop address)
 	   (return))
-	 (let ((ifd (parse-IFD tiff address)))
+	 (let ((ifd (parse-ifd tiff address)))
 	   (push ifd ifds)
 	   (setf address (ifd-next ifd))))
       ifds)))
 
-(defun parse-TIFF (file &key start end)
+(defun parse-tiff (file &key start end)
   (if (streamp file)
       (progn
 	(when start
 	  (file-position file start))
-	(parse-TIFF-stream file end))
+	(parse-tiff-stream file end))
       (with-open-file (stream file)
 	(when start
 	  (file-position stream start))
-	(parse-TIFF-stream stream end))))
+	(parse-tiff-stream stream end))))
 
-(defun map-IFD-tags (function ifd)
+(defun map-ifd-tags (function ifd)
   (dolist (tag (ifd-tags ifd))
     (let ((value (tag-value tag)))
       (if (typep value 'tiff-ifd)
-	  (map-IFD-tags function value)
+	  (map-ifd-tags function value)
 	  (funcall function tag)))))
 
-(defun map-TIFF-tags (function ifds)
+(defun map-tiff-tags (function ifds)
   (dolist (ifd ifds)
-    (map-IFD-tags function ifd)))
+    (map-ifd-tags function ifd)))
 
-(defun TIFF-extract-tags (ifds tag-ids)
+(defun tiff-extract-tags (ifds tag-ids)
   (let ((result '()))
-    (map-TIFF-tags #'(lambda (tag)
+    (map-tiff-tags #'(lambda (tag)
 		       (when (or (eq tag-ids t)
 				 (find (tag-id tag) tag-ids))
 			 (push (cons (tag-id tag) (tag-value tag))
@@ -346,17 +346,17 @@
 		   ifds)
     result))
 
-(defun print-TIFF-tags (ifds &optional stream)
+(defun print-tiff-tags (ifds &optional stream)
   (unless stream
     (setf stream *standard-output*))
-  (labels ((print-IFD (ifd indent)
+  (labels ((print-ifd (ifd indent)
 	     (loop
 		for tag in (ifd-tags ifd)
 		for value = (tag-value tag)
-		if (typep value 'TIFF-IFD)
+		if (typep value 'tiff-ifd)
 		do
 		  (format stream "~vT~A:~%" indent (tag-id tag))
-		  (print-IFD value (+ 2 indent))
+		  (print-ifd value (+ 2 indent))
 		else do
 		  (format stream "~vT~A = ~S~%" indent (tag-id tag) value))))
     (loop
@@ -364,7 +364,7 @@
        for i from 0
        do
 	 (format stream "~&IFD ~A:~%" i)
-	 (print-IFD ifd 2))))
+	 (print-ifd ifd 2))))
 
 ;;; ==============================
 ;;; EOF

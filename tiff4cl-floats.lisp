@@ -95,11 +95,11 @@
 				      significand-length)))))))
 
 
-(make-encoder encode-IEEE-float 8 23)
-(make-decoder decode-IEEE-float 8 23)
+(make-encoder encode-ieee-float 8 23)
+(make-decoder decode-ieee-float 8 23)
 
-(make-encoder encode-IEEE-double 11 52)
-(make-decoder decode-IEEE-double 11 52)
+(make-encoder encode-ieee-double 11 52)
+(make-decoder decode-ieee-double 11 52)
 
 (make-encoder encode-IEEE-quad 15 112)
 (make-decoder decode-IEEE-quad 15 112)

@@ -43,7 +43,7 @@
 (defun read-16bit-be (stream)
   (decode-integer-be (read-bytes stream 2)))
 
-(defun read-16bit-LE (stream)
+(defun read-16bit-le (stream)
   (decode-integer-le (read-bytes stream 2)))
 
 (defun read-32bit-be (stream)

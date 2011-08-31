@@ -62,7 +62,7 @@ of: a numeric id, a keyword id, and a length in bytes.")
     
     (259 :compression ;; data compression technique
      ((1 nil)         ;; no compression
-      (2 :CCITT-1d)   ;; CCITT modified Huffman RLE
+      (2 :ccitt-1d)   ;; CCITT modified Huffman RLE
       (3 :fax-group3) ;; CCITT Group 3 fax encoding / CCITT T.4 (TIFF 6 name)
       (4 :fax-group4) ;; CCITT Group 4 fax encoding / CCITT T.6 (TIFF 6 name)
       (5 :lzw)        ;; Lempel-Ziv & Welch
@@ -75,20 +75,20 @@ of: a numeric id, a keyword id, and a length in bytes.")
       (32809 :thunderscan)    ;; ThunderScan RLE
       (32773 :pack-bits)      ;;  Macintosh RLE
       ;; 
-      (32895 :it8ctpad)  ;;  IT8 CT w/padding 
-      (32896 :it8lw)     ;; IT8 Linework RLE 
-      (32897 :it8mp)     ;; IT8 Monochrome picture 
-      (32898 :it8bl)     ;; IT8 Binary line art 
+      (32895 :it8-ct-pad)  ;;  IT8 CT w/padding 
+      (32896 :it8-linework-rle)     ;; IT8 Linework RLE 
+      (32897 :it8-monochrome)     ;; IT8 Monochrome picture 
+      (32898 :it8-binary-line-art)     ;; IT8 Binary line art 
       ;;
       (32908 :PIXARFILM) ;; Pixar companded 10bit LZW 
       (32909 :PIXARLOG)  ;; Pixar companded 11bit ZIP 
       (32946 :DEFLATE)   ;; Deflate compression 
 
-      (32947 :DCS)       ;; Kodak DCS encoding 
-      (34661 :JBIG)      ;; ISO JBIG 
-      (34676 :SGI-LOG)   ;; SGI Log Luminance RLE 
-      (34677 :SGI-LOG24) ;; SGI Log 24-bit packed 
-      (34712 :JP2000)))  ;; Leadtools JPEG2000 
+      (32947 :dcs)       ;; Kodak DCS encoding 
+      (34661 :jbig)      ;; ISO JBIG 
+      (34676 :sgi-log)   ;; SGI Log Luminance RLE 
+      (34677 :sgi-log24) ;; SGI Log 24-bit packed 
+      (34712 :jp2000)))  ;; Leadtools JPEG2000 
 
     (262 :photometric-interpretation 
      ((0 :white-is-zero)
@@ -175,7 +175,7 @@ of: a numeric id, a keyword id, and a length in bytes.")
 
     (297 :page-number) ;; page numbers of multi-page :NOTE this is returned as an array.
     
-    (300 :COLOR-RESPONSE-UNIT ;; color curve accuracy per unit
+    (300 :color-response-unit ;; color curve accuracy per unit
      ((1 :tenths)             
       (2 :hundredths)         
       (3 :thousandths)        
@@ -248,14 +248,14 @@ of: a numeric id, a keyword id, and a length in bytes.")
      ((1 :baseline)    ;; !baseline sequential 
       (14 :lossless))) ;; !Huffman coded lossless 
 
-    (513 :JPEG-interchange-format)
-    (514 :JPEG-interchange-format-length)
-    (515 :JPEG-restart-interval)
-    (517 :JPEG-lossless-predictors)
-    (518 :JPEG-point-transforms)
-    (519 :JPEG-q-tables)
-    (520 :JPEG-dc-tables)
-    (521 :JPEG-ac-tables)
+    (513 :jpeg-interchange-format)
+    (514 :jpeg-interchange-format-length)
+    (515 :jpeg-restart-interval)
+    (517 :jpeg-lossless-predictors)
+    (518 :jpeg-point-transforms)
+    (519 :jpeg-q-tables)
+    (520 :jpeg-dc-tables)
+    (521 :jpeg-ac-tables)
     (529 :y-cb-cr-coefficients)
     (530 :y-cb-cr-sub-sampling)
     (531 :y-cb-cr-positioning 
@@ -336,7 +336,7 @@ of: a numeric id, a keyword id, and a length in bytes.")
     (34929 :fedex-edr) ;; tag 34929 is a private tag registered to FedEx with unknown use
     (37724 :image-source-data) ;; Photoshop extension
     
-    (50341 :print-IM) ;; Exif extension
+    (50341 :print-im) ;; Exif extension
 
     ;; Adobe Digital Negative (DNG) format tags
     (50706 :dng-version)            ;; dNG version number 
@@ -392,7 +392,7 @@ of: a numeric id, a keyword id, and a length in bytes.")
     ;; tags 34665, 34853 and 40965 are documented in EXIF specification 
     (34665 :exif-ifd)			;; `interpret-tag-value' Exif extension
     (33434 :exposure-time)
-    (33437 :F-number)
+    (33437 :f-number)
     (34850 :exposure-program 
      ((0 nil)
       (1 :manual)
@@ -407,8 +407,8 @@ of: a numeric id, a keyword id, and a length in bytes.")
 
     (34853 :gps-ifd) ;; `interpret-tag-value' Exif extension
 
-    (34855 :ISO-speed-ratings)
-    (34856 :OECF) ;;  Optoelectric conversion factor
+    (34855 :iso-speed-ratings)
+    (34856 :oecf) ;;  Optoelectric conversion factor
     (36864 :exif-version)
     (36867 :date-time-original)  ;; Date and time of original data generation
     (36868 :date-time-digitized) ;; Date and time of digital data generation
