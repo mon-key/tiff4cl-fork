@@ -21,21 +21,24 @@
 ;; :NOTE :SEE `zpb::*type-readers*' zpb-exif/exif.lisp
 ;; :WAS (defconstant +tag-types+
 (define-constant +tag-types+
-    '((1  :byte 1)               ; get-byte 0
-      (2  :ascii 1)              ; get-ascii 1
-      (3  :short 2)              ; get-short 2
-      (4  :long 4)               ; get-long 3
-      (5  :rational 8)           ; get-rational 5
-      (6  :signed-byte 1)        ; get-byte 0 ???
-      (7  :undefined 1)
-      (8  :signed-short 2)
-      (9  :signed-long 4)        ; get-slong 9
-      (10 :signed-rational 8)    ; get-srational 10
-      (11 :float 4)
-      (12 :double 8))
+    ;; <ID> <KEYWORD> <BYTE-WIDTH>
+    ;;-----------------------------
+    '((1     :byte            1)    ; get-byte 0
+      (2     :ascii           1)    ; get-ascii 1
+      (3     :short           2)    ; get-short 2
+      (4     :long            4)    ; get-long 3
+      (5     :rational        8)    ; get-rational 5
+      (6     :signed-byte     1)    ; get-byte 0 ???
+      (7     :undefined       1)    ;
+      (8     :signed-short    2)    ;
+      (9     :signed-long     4)    ; get-slong 9
+      (10    :signed-rational 8)    ; get-srational 10
+      (11    :float           4)    ; `decode-ieee-float'
+      (12    :double          8))   ; `decode-ieee-double' 
   "List of supported tag types.
-Every type is a triplet consisting of: 
-a numeric id, a keyword id, and a length in bytes.")
+Every type is a triplet of the form:
+ <NUMERIC-ID> <KEYWORD> <BYTE-WIDTH>
+:SEE (URL `http://partners.adobe.com/public/developer/en/tiff/TIFF6.pdf') p 15-16.")
 
 ;;; ==============================
 ;;
@@ -84,27 +87,27 @@ a numeric id, a keyword id, and a length in bytes.")
 ;; 
 (defparameter *tag-ids*
   '((254 :new-subfile-type              ; subfile data descriptor 
-     ((1 :REDUCED-IMAGE)                ; reduced resolution version
-      (2 :PAGE)                         ; one page of many
-      (4 :MASK)))                       ; transparency mask
+     ((1 :reduced-image)                ; reduced resolution version
+      (2 :page)                         ; one page of many
+      (4 :mask)))                       ; transparency mask
     (255 :subfile-type                  ; kind of data in subfile
-     ((1 :IMAGE)                        ; full resolution image data
-      (2 :REDUCED-IMAGE)                ; reduced size image data
-      (3 :PAGE)))                       ; one page of many
+     ((1 :image)                        ; full resolution image data
+      (2 :reduced-image)                ; reduced size image data
+      (3 :page)))                       ; one page of many
 
-    (256 :image-width)                  ; image width in pixels
-    (257 :image-length) ;; image height in pixels -- :NOTE exiftool reports this as ImageHeight
-    (258 :bits-per-sample) ;; bits per channel (sample)
+    (256 :image-width)                  ; [SHORT | LONG] -- image width in pixels
+    (257 :image-length)                 ; [SHORT | LONG] -- image height in pixels -- :NOTE exiftool reports this as ImageHeight
+    (258 :bits-per-sample)              ; SHORT -- bits per channel (sample)
     
-    (259 :compression     ; data compression technique
-     ((1 :none) ;nil)             ; no compression
+    (259 :compression     ; SHORT -- data compression technique
+     ((1 :none) ;nil)     ; no compression
       (2 :ccitt-1d)       ; CCITT modified Huffman RLE
       (3 :fax-group3)     ; CCITT Group 3 fax encoding / CCITT T.4 (TIFF 6 name)
       (4 :fax-group4)     ; CCITT Group 4 fax encoding / CCITT T.6 (TIFF 6 name)
       (5 :lzw)            ; Lempel-Ziv & Welch
       (6 :jpeg)           ; 6.0 JPEG
       (7 :jpeg2)          ; JPEG DCT compression
-      (8 :zip) ; :adobe-deflate -- Photoshop extension  -- :NOTE exiftool reports this as "Adobe Deflate". 
+      (8 :zip)            ; :adobe-deflate -- Photoshop extension  -- :NOTE exiftool reports this as "Adobe Deflate". 
       (32766 :next)                     ; NeXT 2-bit RLE
       (32771 :ccitt-rle-word)           ; #1 w/ word alignment
       (32773 :pack-bits)                ;  Macintosh RLE
@@ -122,7 +125,7 @@ a numeric id, a keyword id, and a length in bytes.")
       (34677 :sgi-log24)                ; SGI Log 24-bit packed 
       (34712 :jp2000)))                 ; Leadtools JPEG2000 
 
-    (262 :photometric-interpretation 
+    (262 :photometric-interpretation    ; SHORT
      ((0 :white-is-zero)
       (1 :black-is-zero)
       (2 :rgb)
@@ -136,23 +139,23 @@ a numeric id, a keyword id, and a length in bytes.")
       (32844 :cie-log2l)                ; CIE Log2(L) 
       (32845 :cie-log2luv)))            ; CIE Log2(L) (u',v') 
 
-    (263 :threshholding
+    (263 :threshholding                 ; SHORT
      (1 :bilevel)                       ; b&w art scan 
      (2 :halftone)                      ; or dithered scan 
      (3 :error-diffuse))                ; usually floyd-steinberg 
     
-    (264 :cell-width)
-    (265 :cell-length)
+    (264 :cell-width)        ; SHORT
+    (265 :cell-length)       ; SHORT
 
-    (266 :fill-order 
-     ((1 :msb2lsb)   ; most significant -> least -- exiftool calls this normal
-      (2 :lsb2msb))) ; least significant -> most -- exiftool calls this reversed
+    (266 :fill-order         ; SHORT 
+     ((1 :msb2lsb)           ; most significant -> least -- exiftool calls this normal
+      (2 :lsb2msb)))         ; least significant -> most -- exiftool calls this reversed
 
-    (269 :document-name)
-    (270 :image-description)
-    (271 :make)
-    (272 :model)
-    (273 :strip-offsets)
+    (269 :document-name)     ; ASCII
+    (270 :image-description) ; ASCII
+    (271 :make)              ; ASCII
+    (272 :model)             ; ASCII
+    (273 :strip-offsets)     ; [SHORT | LONG] - values strips-per-image
 
     (274 :orientation                           ; SHORT
      ((1 :normal)                               ; :top-left --  row 0 top, col 0 lhs 
@@ -164,48 +167,48 @@ a numeric id, a keyword id, and a length in bytes.")
       (7 :rotated-90-and-flipped-vertically)    ; :right-bottom -- row 0 rhs, col 0 bottom 
       (8 :rotated-90)))                         ; :left-bottom -- row 0 lhs, col 0 bottom 
 
-    (277 :samples-per-pixel)
-    (278 :rows-per-strip)
-    (279 :strip-byte-counts)
-    (280 :min-sample-value)
-    (281 :max-sample-value)
-    (282 :x-resolution)
-    (283 :y-resolution)
+    (277 :samples-per-pixel)     ; SHORT
+    (278 :rows-per-strip)        ; [SHORT | LONG]
+    (279 :strip-byte-counts)     ; [LONG | SHORT] - values strips-per-image
+    (280 :min-sample-value)      ; SHORT - values samples-per-pixel
+    (281 :max-sample-value)      ; SHORT - values samples-per-pixel
+    (282 :x-resolution)          ; RATIONAL
+    (283 :y-resolution)          ; RATIONAL
 
-    (284 :planar-configuration 
-     ((1 :contiguous)                   ; single image plane -- chunky
-      (2 :separate)))                   ; separate planes of data -- planar
+    (284 :planar-configuration  ; SHORT
+     ((1 :contiguous)           ; single image plane -- chunky
+      (2 :separate)))           ; separate planes of data -- planar
 
-    (285 :page-name)
-    (286 :x-position)
-    (287 :y-position)
-    (288 :free-offsets)
-    (289 :free-byte-counts)
+    (285 :page-name)            ; ASCII
+    (286 :x-position)           ; RATIONAL
+    (287 :y-position)           ; RATIONAL
+    (288 :free-offsets)         ; LONG
+    (289 :free-byte-counts)     ; LONG
 
-    (290 :gray-response-unit
+    (290 :gray-response-unit    ; SHORT - values 2**bits-per-sample
      ((1 :tenths)             
       (2 :hundredths)         
       (3 :thousandths)        
       (4 :ten-thousandths)    
       (5 :hundred-thousandths)))
     
-    (291 :gray-response-curve)
+    (291 :gray-response-curve)          ; SHORT
 
-    (292 :t4-options
+    (292 :t4-options                    ; LONG
      ((1 :2d-encoding)                  ; 2-dimensional coding 
       (2 :uncompressed)                 ; data not compressed 
       (4 :fill-bits)))                  ; fill to byte boundary 
     
-    (293 :t6-options
+    (293 :t6-options                    ; LONG
      (3 :uncompressed))                 ; data not compressed
 
-    (296 :resolution-unit 
+    (296 :resolution-unit               ; SHORT
      ((1 nil)                           ; no meaningful units
       (2 :inch)                         ; english
       ;; (3 :CENTIMETER)
       (3 :cm)))                         ; metric
 
-    (297 :page-number) ; page numbers of multi-page :NOTE this is returned as an array.
+    (297 :page-number)                  ; SHORT - values 2 -- page numbers of multi-page :NOTE this is returned as an array.
     
     (300 :color-response-unit           ; color curve accuracy per unit
      ((1 :tenths)             
@@ -214,25 +217,25 @@ a numeric id, a keyword id, and a length in bytes.")
       (4 :ten-thousandths)    
       (5 :hundred-thousandths)))
 
-    (301 :transfer-function)            ; colorimetry info
-    (305 :software)                     ; name & release
-    (306 :date-time)                    ; creation date and time
-    (315 :artist)                       ; creator of image
-    (316 :host-computer)                ; machine where created
+    (301 :transfer-function)            ; SHORT -- colorimetry info 
+    (305 :software)                     ; ASCII -- name & release
+    (306 :date-time)                    ; ASCII 20 -- creation date and time
+    (315 :artist)                       ; ASCII -- creator of image
+    (316 :host-computer)                ; ASCII -- machine where created
 
-    (317 :predictor                     ; prediction scheme w/ LZW
+    (317 :predictor                     ; SHORT -- prediction scheme w/ LZW
      ((1 nil)                           ; no prediction scheme use
       (2 :horizontal)                   ; horizontal differencing -- exiftool "Horizontal differencing"
       (3 :floating-point)))             ; floating point predictor
     
-    (318 :white-point)                  ;  image-whitepoint
-    (319 :primary-chromaticities)
-    (320 :color-map)
-    (321 :halftone-hints)
-    (322 :tile-width)
-    (323 :tile-length)
-    (324 :tile-offsets)
-    (325 :tile-byte-counts)
+    (318 :white-point)                  ; RATIONAL - values 2 -- image-whitepoint
+    (319 :primary-chromaticities)       ; RATIONAL - values 6
+    (320 :color-map)                    ; SHORT - values  (* 3 2**bits-per-sample)
+    (321 :halftone-hints)               ; SHORT - values 2
+    (322 :tile-width)                   ; [SHORT | LONG] - values 1
+    (323 :tile-length)                  ; [SHORT | LONG] - values 1
+    (324 :tile-offsets)                 ; LONG - values tiles-per-image
+    (325 :tile-byte-counts)             ; [SHORT | LONG] - values tiles-per-image
 
     (326 :bad-fax-lines)                ; lines w/ wrong pixel count
 
@@ -247,21 +250,22 @@ a numeric id, a keyword id, and a length in bytes.")
     ;; :NOTE Nikon nef IFD 0 contains offsets to the 2 child IFDs
     (330 :sub-ifds)                     ; subimage descriptors - PageMaker extension
     
-    (332 :ink-set                       ; inks in separated image 
+    (332 :ink-set                       ; SHORT -- inks in separated image 
      ((1 :cmyk)                         ; cyan-magenta-yellow-black color
       (2 :multi-ink)))                  ; multi-ink or hi-fi color
 
-    (333 :ink-names)
-    (334 :number-of-inks)
-    (336 :dot-range)
-    (337 :target-printer)
+    (333 :ink-names)                    ; ASCII -- total number of characers in all ink name strings, including zeros
+    (334 :number-of-inks)               ; SHORT
 
-    (338 :extra-samples
+    (336 :dot-range)                    ; BYTE | SHORT
+    (337 :target-printer)               ; ASCII
+
+    (338 :extra-samples                 ; BYTE
      ((0 :unspecified)                  ; unspecified data 
       (1 :associated-alpha)             ; associated alpha data 
       (2 :unassociated-alpha)))         ; unassociated alpha data 
 
-    (339 :sample-format
+    (339 :sample-format                  ; SHORT
      ((1 :unisigned-integer)             ; unsigned integer data 
       (2 :signed-integer)                ; signed integer data 
       (3 :ieee-floating-point)           ; IEEE floating point data 
@@ -269,9 +273,10 @@ a numeric id, a keyword id, and a length in bytes.")
       (5 :complex-signed-integer)        ; complex signed int 
       (6 :complex-ieee-floating-point))) ; complex ieee floating 
 
-    (340 :s-min-sample-value)
-    (341 :s-max-sample-value)
-    (342 :transfer-range)
+    (340 :s-min-sample-value)           ; UNDEFINED
+    (341 :s-max-sample-value)           ; UNDEFINED
+    (342 :transfer-range)               ; SHORT - values 6
+
     (343 :clip-path)                    ; PageMaker extension
     (344 :x-clip-path-units)            ; PageMaker extension
     (345 :y-clip-path-units)            ; PageMaker extension
@@ -279,28 +284,28 @@ a numeric id, a keyword id, and a length in bytes.")
     (347 :jpeg-tables)                  ; Photoshop extension
     (351 :opi-proxy)                    ; PageMaker extension
     
-    (512 :jpeg-proc
+    (512 :jpeg-proc                     ; SHORT
      ((1 :baseline)                     ; baseline sequential 
       (14 :lossless)))                  ; Huffman coded lossless 
     
-    (513 :jpeg-interchange-format)
-    (514 :jpeg-interchange-format-length)
-    (515 :jpeg-restart-interval)
-    (517 :jpeg-lossless-predictors)
-    (518 :jpeg-point-transforms)
-    (519 :jpeg-q-tables)
-    (520 :jpeg-dc-tables)
-    (521 :jpeg-ac-tables)
+    (513 :jpeg-interchange-format)        ; LONG
+    (514 :jpeg-interchange-format-length) ; LONG
+    (515 :jpeg-restart-interval)          ; SHORT
+    (517 :jpeg-lossless-predictors)       ; SHORT - values samples-per-pixel
+    (518 :jpeg-point-transforms)          ; SHORT - values samples-per-pixel
+    (519 :jpeg-q-tables)                  ; LONG  - values samples-per-pixel
+    (520 :jpeg-dc-tables)                 ; LONG  - values samples-per-pixel
+    (521 :jpeg-ac-tables)                 ; LONG  - values samples-per-pixel
 
     ;; 4.5.3 Basic Structure of YCbCr Uncompressed Data
-    (529 :ycbcr-coefficients) ; RGB-YCbCr color transformation matrix coefficients
-    (530 :ycbcr-sub-sampling) ; Chrominance subsampling information
+    (529 :ycbcr-coefficients) ; RATIONAL - values 3 -- RGB-YCbCr color transformation matrix coefficients
+    (530 :ycbcr-sub-sampling) ; SHORT - values 2 --  Chrominance subsampling information
     
-    (531 :ycbcr-positioning ; short -- Information on matching/nonmatching of chrominance and luminance samples
+    (531 :ycbcr-positioning   ; SHORT -- Information on matching/nonmatching of chrominance and luminance samples
      ((1 :centered)
       (2 :co-sited)))
 
-    (532 :reference-black-white)
+    (532 :reference-black-white)        ; LONG - values (* 2 samples-per-pixel)
     (32781 :image-id)                   ; PageMaker extension
     (32954 :region-tack-point)          ; region-xform tack point 
     (32955 :region-warp-corners)        ; warp quadrilateral 
@@ -334,7 +339,7 @@ a numeric id, a keyword id, and a length in bytes.")
     (33405 :writer-serial-number)       ;   device serial number
 
     ;; tag 33432 is listed in the 6.0 spec w/ unknown ownership
-    (33432 :copyright)
+    (33432 :copyright) ; ASCII
 
     ;; 34016-34029 are reserved for ANSI IT8 TIFF/IT <dkelly@apago.com) 
     (34016 :it8-site)                          ; site name 
